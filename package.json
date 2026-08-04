@@ -1,7 +1,7 @@
 {
   "name": "din-din-app",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "expo-router/entry",
   "dependencies": {
     "@rn-primitives/accordion": "^1.5.2",
     "@rn-primitives/alert-dialog": "^1.5.2",
@@ -30,6 +30,9 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "expo": "~54.0.0",
+    "expo-constants": "~18.0.13",
+    "expo-linking": "~8.0.12",
+    "expo-router": "~6.0.24",
     "expo-status-bar": "~3.0.9",
     "firebase": "^12.17.0",
     "lucide-react-native": "^1.28.0",
