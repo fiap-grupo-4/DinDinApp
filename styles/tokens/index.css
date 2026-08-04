@@ -1,0 +1,7 @@
+@import './fonts.css';
+@import './typography.css';
+@import './colors.css';
+
+:root {
+  --color-background: var(--gray-200);
+}

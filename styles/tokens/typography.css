@@ -1,0 +1,14 @@
+:root {
+  --text-body-sm: 0.75rem; /* 12px */
+  --text-body-md: 0.875rem; /* 14px */
+  --text-body-lg: 1rem; /* 16px */
+
+  --text-heading-xs: 1.125rem; /* 18px */
+  --text-heading-sm: 1.375rem; /* 22px */
+  --text-heading-md: 1.5rem; /* 24px */
+  --text-heading-lg: 1.75rem; /* 28px */
+  --text-heading-xl: 2rem; /* 32px */
+
+  --leading-body: 150%;
+  --leading-heading: 120%;
+}
