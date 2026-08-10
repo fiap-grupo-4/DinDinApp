@@ -1,10 +1,10 @@
-import { Button } from '@/components/ui/button'
-import { Text } from '@/components/ui/text'
-import { PortalHost } from '@rn-primitives/portal'
-import { StatusBar } from 'expo-status-bar'
-import { View } from 'react-native'
-import { SafeAreaProvider } from 'react-native-safe-area-context'
-import './global.css'
+import { Button } from "@/src/shared/ui/button";
+import { Text } from "@/src/shared/ui/text";
+import { PortalHost } from "@rn-primitives/portal";
+import { StatusBar } from "expo-status-bar";
+import { View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import "./src/styles/global.css";
 
 export default function App() {
   return (
@@ -20,5 +20,5 @@ export default function App() {
       </View>
       <PortalHost />
     </SafeAreaProvider>
-  )
+  );
 }
