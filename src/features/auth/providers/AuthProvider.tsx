@@ -25,20 +25,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setState(user),
     );
     return () => unsub();
-  }, []);
+  }, [repository]);
 
   useEffect(() => {
-    if (!state.loading && !state.user) {
-      const path = "/" + segments.join("/");
-      if (
-        path.startsWith("/dashboard") ||
-        path.startsWith("/transactions") ||
-        path === "/profile"
-      ) {
-        router.replace("/auth/login");
-      }
+    if (state.loading) return;
+
+    const rootSegment = segments[0];
+    const inAuthGroup = rootSegment === "auth";
+    const inProtectedGroup =
+      rootSegment === "dashboard" ||
+      rootSegment === "transactions" ||
+      rootSegment === "profile";
+
+    if (!state.user && inProtectedGroup) {
+      router.replace("/auth/login");
+      return;
     }
-  }, [state.loading, state.user, router]);
+
+    if (state.user && inAuthGroup) {
+      router.replace("/dashboard");
+    }
+  }, [state.loading, state.user, segments, router]);
 
   return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;
 };

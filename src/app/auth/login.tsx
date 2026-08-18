@@ -5,14 +5,18 @@ import { Text } from "@/src/shared/ui/text";
 import { loginSchema, type LoginFormData } from "@/src/lib/schemas/auth";
 import { cn } from "@/src/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, useRouter } from "expo-router";
+import { Link } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import { useAuth } from "@features/auth/hooks/useAuth";
-import { View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  View,
+} from "react-native";
 
 export default function Login() {
-  const router = useRouter();
-  const { loading, error, handleSignIn } = useAuth();
+  const { isPending, error, handleSignIn } = useAuth();
 
   const {
     control,
@@ -26,85 +30,101 @@ export default function Login() {
     },
   });
 
-  const onSubmit = async (data: LoginFormData) => {
-    try {
-      await handleSignIn(data.email, data.password);
-      router.push("/dashboard");
-    } catch (error) {
-      console.error(error);
-    }
+  const onSubmit = (data: LoginFormData) => {
+    handleSignIn(data.email, data.password);
   };
 
   return (
-    <View className="flex-1 justify-center bg-background px-6">
-      <View className="gap-6">
-        <View className="gap-2">
-          <Label nativeID="login-email">E-mail</Label>
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                nativeID="login-email"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                placeholder="seu@email.com"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                textContentType="emailAddress"
-                aria-invalid={!!errors.email}
-                className={cn(errors.email && "border-destructive")}
-              />
-            )}
-          />
-          {errors.email && (
-            <Text className="text-destructive text-sm">
-              {errors.email.message}
+    <KeyboardAvoidingView
+      className="flex-1 bg-background"
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView
+        contentContainerClassName="flex-grow justify-center px-6 py-8"
+        keyboardShouldPersistTaps="handled"
+      >
+        <View className="gap-6">
+          <View className="gap-2">
+            <Text variant="h3" className="text-left">
+              Entrar
             </Text>
-          )}
-        </View>
+            <Text variant="muted">Acesse sua conta para continuar</Text>
+          </View>
 
-        <View className="gap-2">
-          <Label nativeID="login-password">Senha</Label>
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                nativeID="login-password"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                placeholder="••••••••"
-                secureTextEntry
-                autoComplete="password"
-                textContentType="password"
-                aria-invalid={!!errors.password}
-                className={cn(errors.password && "border-destructive")}
-              />
+          <View className="gap-2">
+            <Label nativeID="login-email">E-mail</Label>
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <Input
+                  nativeID="login-email"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  placeholder="seu@email.com"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  returnKeyType="next"
+                  editable={!isPending}
+                  aria-invalid={!!errors.email}
+                  className={cn(errors.email && "border-destructive")}
+                />
+              )}
+            />
+            {errors.email && (
+              <Text className="text-destructive text-sm">
+                {errors.email.message}
+              </Text>
             )}
-          />
-          {errors.password && (
-            <Text className="text-destructive text-sm">
-              {errors.password.message}
-            </Text>
-          )}
-        </View>
+          </View>
 
-        {error && <Text className="text-destructive text-sm">{error}</Text>}
+          <View className="gap-2">
+            <Label nativeID="login-password">Senha</Label>
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <Input
+                  nativeID="login-password"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  placeholder="••••••••"
+                  secureTextEntry
+                  autoComplete="password"
+                  textContentType="password"
+                  returnKeyType="done"
+                  onSubmitEditing={handleSubmit(onSubmit)}
+                  editable={!isPending}
+                  aria-invalid={!!errors.password}
+                  className={cn(errors.password && "border-destructive")}
+                />
+              )}
+            />
+            {errors.password && (
+              <Text className="text-destructive text-sm">
+                {errors.password.message}
+              </Text>
+            )}
+          </View>
 
-        <Button onPress={handleSubmit(onSubmit)} disabled={loading}>
-          <Text>{loading ? "Entrando..." : "Entrar"}</Text>
-        </Button>
+          {error && <Text className="text-destructive text-sm">{error}</Text>}
 
-        <Link href="/auth/register" asChild>
-          <Button variant="link">
-            <Text>Criar uma conta</Text>
+          <Button onPress={handleSubmit(onSubmit)} disabled={isPending}>
+            <Text>{isPending ? "Entrando..." : "Entrar"}</Text>
           </Button>
-        </Link>
-      </View>
-    </View>
+
+          <Link href="/auth/register" asChild>
+            <Button variant="link" disabled={isPending}>
+              <Text>Criar uma conta</Text>
+            </Button>
+          </Link>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

@@ -38,20 +38,27 @@ export class FirebaseAuthRepository implements IAuthRepository {
       data.email,
       data.password,
     );
+    const user = userCredential.user;
 
-    if (auth.currentUser) {
-      await updateProfile(auth.currentUser, { displayName: data.fullName });
+    try {
+      await updateProfile(user, { displayName: data.fullName });
+    } catch (err) {
+      console.error("Falha ao atualizar o perfil no Auth:", err);
     }
 
-    await setDoc(doc(db, "users", userCredential.user.uid), {
-      uid: userCredential.user.uid,
-      email: data.email,
-      fullName: data.fullName,
-      birthday: data.birthday,
-      createdAt: new Date().toISOString(),
-    });
+    try {
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        email: data.email,
+        fullName: data.fullName,
+        birthday: data.birthday,
+        createdAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error("Falha ao salvar usuário no Firestore:", err);
+    }
 
-    return { uid: userCredential.user.uid, email: data.email };
+    return { uid: user.uid, email: data.email };
   }
 
   onAuthStateChanged(callback: (user: AuthState) => void): () => void {
