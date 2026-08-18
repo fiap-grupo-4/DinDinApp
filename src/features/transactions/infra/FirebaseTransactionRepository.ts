@@ -49,7 +49,7 @@ export class FirebaseTransactionRepository implements ITransactionRepository {
     const ref = doc(db, COLLECTION, id);
     const snap = await getDoc(ref);
     if (!snap.exists()) return null;
-    return { uid: snap.id, ...(snap.data() as any) } as Transaction;
+    return { uid: snap.id, ...(snap.data() as Omit<Transaction, "uid">) };
   }
 
   async listForUser(
@@ -67,8 +67,8 @@ export class FirebaseTransactionRepository implements ITransactionRepository {
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map((d) => ({
       uid: d.id,
-      ...(d.data() as any),
-    })) as Transaction[];
+      ...(d.data() as Omit<Transaction, "uid">),
+    }));
     return {
       data,
       nextCursor: data.length === lim ? data[data.length - 1].uid : null,

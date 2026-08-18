@@ -7,7 +7,6 @@ import {
   signOut,
 } from "@domain/auth/use-cases/authUseCases";
 import { useAuthRepository } from "@features/auth/providers/AuthRepositoryProvider";
-import { useRouter } from "expo-router";
 import { useState } from "react";
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
@@ -63,7 +62,6 @@ function getAuthErrorMessage(
 
 export function useAuth() {
   const repository = useAuthRepository();
-  const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
