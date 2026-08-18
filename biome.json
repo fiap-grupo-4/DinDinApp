@@ -1,0 +1,89 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.2.3/schema.json",
+	"vcs": {
+		"enabled": false,
+		"clientKind": "git",
+		"useIgnoreFile": false
+	},
+	"files": {
+		"ignoreUnknown": false,
+		"includes": [
+			"src/**",
+			"!src/shared/ui",
+			"!src/styles/global.css"
+		]
+	},
+	"formatter": {
+		"enabled": false,
+		"indentStyle": "space",
+		"indentWidth": 2,
+		"lineEnding": "lf",
+		"lineWidth": 120,
+		"bracketSpacing": true,
+		"useEditorconfig": true
+	},
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "off"
+			}
+		}
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"a11y": {
+				"useButtonType": "off",
+				"noSvgWithoutTitle": "off",
+				"useKeyWithClickEvents": "off",
+				"useIframeTitle": "off",
+				"noLabelWithoutControl": "off",
+				"noStaticElementInteractions": "off"
+			},
+			"performance": {
+				"noImgElement": "off"
+			},
+			"nursery": {
+				"useSortedClasses": "off"
+			},
+			"suspicious": {
+				"noArrayIndexKey": "off",
+				"noExplicitAny": "warn",
+				"noThenProperty": "off"
+			},
+			"style": {
+				"useImportType": "off",
+				"useExportType": "off"
+			},
+			"correctness": {
+				"noUndeclaredVariables": "off",
+				"useExhaustiveDependencies": "off"
+			}
+		},
+		"includes": [
+			"src/**",
+			"!src/shared/ui",
+			"!src/styles/global.css"
+		]
+	},
+	"javascript": {
+		"formatter": {
+			"jsxQuoteStyle": "double",
+			"quoteProperties": "asNeeded",
+			"trailingCommas": "all",
+			"semicolons": "asNeeded",
+			"arrowParentheses": "always",
+			"bracketSameLine": false,
+			"quoteStyle": "single",
+			"attributePosition": "auto",
+			"bracketSpacing": true
+		}
+	},
+	"css": {
+		"parser": {
+			"cssModules": false,
+			"allowWrongLineComments": true
+		}
+	}
+}

@@ -130,7 +130,7 @@ export function useAuth() {
     try {
       await forgotPassword(repository, email);
       toast.success("Enviamos um e-mail para redefinir sua senha.");
-      router.replace("/auth/login");
+      /* router.replace("/auth/login"); */
     } catch (err) {
       const message = getAuthErrorMessage(
         err,
