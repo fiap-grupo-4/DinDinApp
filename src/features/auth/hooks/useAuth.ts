@@ -127,8 +127,10 @@ export function useAuth() {
 
     try {
       await forgotPassword(repository, email);
-      toast.success("Enviamos um e-mail para redefinir sua senha.");
-      /* router.replace("/auth/login"); */
+      toast.success(
+        "Enviamos um e-mail para redefinir sua senha. Verifique a caixa de entrada e o spam.",
+      );
+      return true;
     } catch (err) {
       const message = getAuthErrorMessage(
         err,
@@ -140,6 +142,7 @@ export function useAuth() {
       );
       setError(message);
       toast.error(message);
+      return false;
     } finally {
       setIsPending(false);
     }

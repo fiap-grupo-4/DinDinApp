@@ -1,3 +1,4 @@
+import { Alert, AlertDescription, AlertTitle } from "@/src/shared/ui/alert";
 import { Button } from "@/src/shared/ui/button";
 import { Input } from "@/src/shared/ui/input";
 import { Label } from "@/src/shared/ui/label";
@@ -9,8 +10,10 @@ import {
 import { cn } from "@/src/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "expo-router";
+import { MailCheck } from "lucide-react-native";
 import { Controller, useForm } from "react-hook-form";
 import { useAuth } from "@features/auth/hooks/useAuth";
+import { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -20,6 +23,7 @@ import {
 
 export default function ForgotPassword() {
   const { isPending, error, handleForgotPassword } = useAuth();
+  const [isEmailSent, setIsEmailSent] = useState(false);
 
   const {
     control,
@@ -32,8 +36,11 @@ export default function ForgotPassword() {
     },
   });
 
-  const onSubmit = (data: ForgotPasswordFormData) => {
-    handleForgotPassword(data.email);
+  const onSubmit = async (data: ForgotPasswordFormData) => {
+    const didSend = await handleForgotPassword(data.email);
+    if (didSend) {
+      setIsEmailSent(true);
+    }
   };
 
   return (
@@ -88,6 +95,16 @@ export default function ForgotPassword() {
           </View>
 
           {error && <Text className="text-destructive text-sm">{error}</Text>}
+
+          {isEmailSent && (
+            <Alert icon={MailCheck} accessibilityLabel="E-mail enviado">
+              <AlertTitle>E-mail enviado</AlertTitle>
+              <AlertDescription>
+                Verifique sua caixa de entrada e a pasta de spam para redefinir
+                a senha.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <Button onPress={handleSubmit(onSubmit)} disabled={isPending}>
             <Text>{isPending ? "Enviando..." : "Enviar e-mail"}</Text>
