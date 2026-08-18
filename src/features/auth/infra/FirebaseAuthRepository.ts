@@ -2,18 +2,50 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
   signInWithEmailAndPassword,
-  signOut,
+  sendPasswordResetEmail,
+  signOut as firebaseSignOut,
   onAuthStateChanged,
-  User,
+  User as FirebaseUser,
 } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { auth, db } from "@/src/lib/firebase";
 import {
   IAuthRepository,
   AuthUser,
   AuthState,
 } from "@domain/auth/repositories/IAuthRepository";
-import { CreateUserRequest } from "@domain/auth/entities/User";
+import { CreateUserRequest, User } from "@domain/auth/entities/User";
+
+function mapAuthUser(user: FirebaseUser): AuthUser {
+  return {
+    uid: user.uid,
+    email: user.email ?? "",
+    displayName: user.displayName ?? null,
+  };
+}
+
+function toIsoDate(value: unknown): string {
+  if (value instanceof Timestamp) {
+    return value.toDate().toISOString();
+  }
+
+  if (typeof value === "string") {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString();
+  }
+
+  return "";
+}
+
+function mapProfile(uid: string, data: Record<string, unknown>): User {
+  return {
+    uid,
+    email: typeof data.email === "string" ? data.email : "",
+    fullName: typeof data.fullName === "string" ? data.fullName : "",
+    birthday: typeof data.birthday === "string" ? data.birthday : "",
+    createdAt: toIsoDate(data.createdAt),
+  };
+}
 
 export class FirebaseAuthRepository implements IAuthRepository {
   async signIn(email: string, password: string): Promise<AuthUser> {
@@ -22,14 +54,11 @@ export class FirebaseAuthRepository implements IAuthRepository {
       email,
       password,
     );
-    return {
-      uid: userCredential.user.uid,
-      email: userCredential.user.email ?? "",
-    };
+    return mapAuthUser(userCredential.user);
   }
 
   async signOut(): Promise<void> {
-    await signOut(auth);
+    await firebaseSignOut(auth);
   }
 
   async register(data: CreateUserRequest): Promise<AuthUser> {
@@ -52,23 +81,32 @@ export class FirebaseAuthRepository implements IAuthRepository {
         email: data.email,
         fullName: data.fullName,
         birthday: data.birthday,
-        createdAt: new Date().toISOString(),
+        createdAt: serverTimestamp(),
       });
     } catch (err) {
       console.error("Falha ao salvar usuário no Firestore:", err);
     }
 
-    return { uid: user.uid, email: data.email };
+    return mapAuthUser(user);
   }
 
-  onAuthStateChanged(callback: (user: AuthState) => void): () => void {
-    return onAuthStateChanged(auth, (user: User | null) => {
+  async forgotPassword(email: string): Promise<void> {
+    await sendPasswordResetEmail(auth, email);
+  }
+
+  async getProfile(uid: string): Promise<User | null> {
+    const snap = await getDoc(doc(db, "users", uid));
+
+    if (!snap.exists()) return null;
+
+    return mapProfile(snap.id, snap.data());
+  }
+
+  onAuthStateChanged(callback: (state: AuthState) => void): () => void {
+    return onAuthStateChanged(auth, (user: FirebaseUser | null) => {
       callback(
         user != null
-          ? {
-              user: { uid: user.uid, email: user.email ?? undefined },
-              loading: false,
-            }
+          ? { user: mapAuthUser(user), loading: false }
           : { user: null, loading: false },
       );
     });

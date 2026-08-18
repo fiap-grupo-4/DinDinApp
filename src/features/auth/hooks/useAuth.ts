@@ -1,9 +1,14 @@
 import { toast } from "@/src/lib/sonner";
 import { CreateUserRequest } from "@domain/auth/entities/User";
-import { register, signIn } from "@domain/auth/use-cases/authUseCases";
+import {
+  forgotPassword,
+  register,
+  signIn,
+  signOut,
+} from "@domain/auth/use-cases/authUseCases";
 import { useAuthRepository } from "@features/auth/providers/AuthRepositoryProvider";
 import { useRouter } from "expo-router";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   "auth/invalid-email": "E-mail inválido.",
@@ -38,12 +43,18 @@ function getErrorCode(error: unknown) {
   return null;
 }
 
-function getAuthErrorMessage(error: unknown, fallback: string) {
+function getAuthErrorMessage(
+  error: unknown,
+  fallback: string,
+  overrides?: Record<string, string>,
+) {
   const code = getErrorCode(error);
 
   if (!code) return fallback;
 
   return (
+    overrides?.[code] ??
+    overrides?.[`auth/${code}`] ??
     AUTH_ERROR_MESSAGES[code] ??
     AUTH_ERROR_MESSAGES[`auth/${code}`] ??
     `${fallback} (${code})`
@@ -53,55 +64,95 @@ function getAuthErrorMessage(error: unknown, fallback: string) {
 export function useAuth() {
   const repository = useAuthRepository();
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSignIn = (email: string, password: string) => {
-    startTransition(async () => {
-      setError(null);
+  const handleSignIn = async (email: string, password: string) => {
+    if (isPending) return;
 
-      try {
-        await signIn(repository, email, password);
-        toast.success("Login realizado com sucesso.");
-      } catch (err) {
-        const message = getAuthErrorMessage(err, "Erro ao fazer login.");
-        setError(message);
-        toast.error(message);
-      }
-    });
+    setIsPending(true);
+    setError(null);
+
+    try {
+      await signIn(repository, email, password);
+      toast.success("Login realizado com sucesso.");
+    } catch (err) {
+      const message = getAuthErrorMessage(err, "Erro ao fazer login.");
+      setError(message);
+      toast.error(message);
+    } finally {
+      setIsPending(false);
+    }
   };
 
-  const handleSignOut = () => {
-    startTransition(async () => {
-      setError(null);
+  const handleSignOut = async () => {
+    if (isPending) return;
 
-      try {
-        await repository.signOut();
-        toast.success("Você saiu da conta.");
-        router.replace("/auth/login");
-      } catch (err) {
-        const message = getAuthErrorMessage(err, "Erro ao sair.");
-        setError(message);
-        toast.error(message);
-      }
-    });
+    setIsPending(true);
+    setError(null);
+
+    try {
+      await signOut(repository);
+      toast.success("Você saiu da conta.");
+    } catch (err) {
+      const message = getAuthErrorMessage(err, "Erro ao sair.");
+      setError(message);
+      toast.error(message);
+      setIsPending(false);
+    }
   };
 
-  const handleRegister = (data: CreateUserRequest) => {
-    startTransition(async () => {
-      setError(null);
+  const handleRegister = async (data: CreateUserRequest) => {
+    if (isPending) return;
 
-      try {
-        await register(repository, data);
-        toast.success("Conta criada com sucesso.");
-      } catch (err) {
-        console.error("Falha no cadastro:", err);
-        const message = getAuthErrorMessage(err, "Erro ao criar conta.");
-        setError(message);
-        toast.error(message);
-      }
-    });
+    setIsPending(true);
+    setError(null);
+
+    try {
+      await register(repository, data);
+      toast.success("Conta criada com sucesso.");
+    } catch (err) {
+      console.error("Falha no cadastro:", err);
+      const message = getAuthErrorMessage(err, "Erro ao criar conta.");
+      setError(message);
+      toast.error(message);
+    } finally {
+      setIsPending(false);
+    }
   };
 
-  return { isPending, error, handleSignIn, handleRegister, handleSignOut };
+  const handleForgotPassword = async (email: string) => {
+    if (isPending) return;
+
+    setIsPending(true);
+    setError(null);
+
+    try {
+      await forgotPassword(repository, email);
+      toast.success("Enviamos um e-mail para redefinir sua senha.");
+      router.replace("/auth/login");
+    } catch (err) {
+      const message = getAuthErrorMessage(
+        err,
+        "Erro ao enviar e-mail de recuperação.",
+        {
+          "auth/user-not-found":
+            "Não encontramos uma conta com este e-mail.",
+        },
+      );
+      setError(message);
+      toast.error(message);
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return {
+    isPending,
+    error,
+    handleSignIn,
+    handleRegister,
+    handleSignOut,
+    handleForgotPassword,
+  };
 }

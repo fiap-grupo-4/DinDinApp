@@ -27,6 +27,16 @@ export const loginSchema = z.object({
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 
+export const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, "E-mail é obrigatório")
+    .email("E-mail inválido"),
+});
+
+export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+
 export const registerSchema = z
   .object({
     fullName: z

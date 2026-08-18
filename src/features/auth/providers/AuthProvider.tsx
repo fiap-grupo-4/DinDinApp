@@ -1,28 +1,21 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter, useSegments } from "expo-router";
-import { FirebaseAuthRepository } from "../infra/FirebaseAuthRepository";
 import { AuthState } from "@/src/domain/auth/repositories/IAuthRepository";
+import { useAuthRepository } from "@features/auth/providers/AuthRepositoryProvider";
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const repository = useMemo(() => new FirebaseAuthRepository(), []);
-
+  const repository = useAuthRepository();
   const [state, setState] = useState<AuthState>({ user: null, loading: true });
   const router = useRouter();
   const segments = useSegments();
 
   useEffect(() => {
-    const unsub = repository.onAuthStateChanged((user: AuthState) =>
-      setState(user),
+    const unsub = repository.onAuthStateChanged((nextState: AuthState) =>
+      setState(nextState),
     );
     return () => unsub();
   }, [repository]);
@@ -33,8 +26,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const rootSegment = segments[0];
     const inAuthGroup = rootSegment === "auth";
     const inProtectedGroup =
+      rootSegment === "(app)" ||
       rootSegment === "dashboard" ||
       rootSegment === "transactions" ||
+      rootSegment === "account" ||
       rootSegment === "profile";
 
     if (!state.user && inProtectedGroup) {
