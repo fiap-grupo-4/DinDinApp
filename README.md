@@ -11,6 +11,7 @@ O projeto foi reorganizado com uma estrutura baseada em Domain-Driven Design (DD
 - [Expo](https://expo.dev/) ~54
 - [React Native](https://reactnative.dev/) 0.81
 - [TypeScript](https://www.typescriptlang.org/)
+- [Biome](https://biomejs.dev/) 2.2.3 — lint do código em `src/`
 - [NativeWind](https://www.nativewind.dev/) (Tailwind CSS para React Native)
 - [Firebase](https://firebase.google.com/) (Auth e Firestore)
 - [React Native Reusables](https://rnr-docs.vercel.app/) — componentes baseados em `@rn-primitives`
@@ -115,14 +116,42 @@ din-din-app/
 - Infraestrutura: implementa esses contratos com tecnologias concretas, como Firebase.
 - Features: organizam cada funcionalidade em módulos com hooks, providers e interface, facilitando manutenção e escalabilidade.
 
+## Lint e qualidade
+
+O projeto usa [Biome](https://biomejs.dev/) para lint em `src/`. A configuração fica em `biome.json`. O formatador do Biome está desligado; `npm run format` aplica apenas correções de lint.
+
+Componentes gerados em `src/shared/ui` e o arquivo `src/styles/global.css` ficam fora do lint.
+
+```bash
+# Lint (warnings e errors)
+npm run lint
+
+# Lint apenas errors
+npm run lint-error
+
+# Aplica correções de lint
+npm run format
+
+# Type-check
+npm run check-types
+
+# Format + lint + type-check
+npm run check-all
+```
+
 ## Scripts disponíveis
 
-| Comando           | Descrição                               |
-| ----------------- | --------------------------------------- |
-| `npm start`       | Inicia o Expo Dev Server                |
-| `npm run android` | Executa no emulador/dispositivo Android |
-| `npm run ios`     | Executa no simulador/dispositivo iOS    |
-| `npm run web`     | Executa no navegador                    |
+| Comando               | Descrição                               |
+| --------------------- | --------------------------------------- |
+| `npm start`           | Inicia o Expo Dev Server                |
+| `npm run android`     | Executa no emulador/dispositivo Android |
+| `npm run ios`         | Executa no simulador/dispositivo iOS    |
+| `npm run web`         | Executa no navegador                    |
+| `npm run lint`        | Roda o Biome em `src/`                  |
+| `npm run lint-error`  | Roda o Biome só com errors              |
+| `npm run format`      | Aplica correções de lint do Biome       |
+| `npm run check-types` | Verifica os tipos com TypeScript        |
+| `npm run check-all`   | Format + lint + type-check              |
 
 ## Licença
 
