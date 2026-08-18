@@ -1,13 +1,19 @@
+import { Alert, AlertDescription, AlertTitle } from "@/src/shared/ui/alert";
 import { Button } from "@/src/shared/ui/button";
 import { Input } from "@/src/shared/ui/input";
 import { Label } from "@/src/shared/ui/label";
 import { Text } from "@/src/shared/ui/text";
-import { loginSchema, type LoginFormData } from "@/src/lib/schemas/auth";
+import {
+  forgotPasswordSchema,
+  type ForgotPasswordFormData,
+} from "@/src/lib/schemas/auth";
 import { cn } from "@/src/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "expo-router";
+import { MailCheck } from "lucide-react-native";
 import { Controller, useForm } from "react-hook-form";
 import { useAuth } from "@features/auth/hooks/useAuth";
+import { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -15,23 +21,26 @@ import {
   View,
 } from "react-native";
 
-export default function Login() {
-  const { isPending, error, handleSignIn } = useAuth();
+export default function ForgotPassword() {
+  const { isPending, error, handleForgotPassword } = useAuth();
+  const [isEmailSent, setIsEmailSent] = useState(false);
 
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+  } = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
       email: "",
-      password: "",
     },
   });
 
-  const onSubmit = (data: LoginFormData) => {
-    handleSignIn(data.email, data.password);
+  const onSubmit = async (data: ForgotPasswordFormData) => {
+    const didSend = await handleForgotPassword(data.email);
+    if (didSend) {
+      setIsEmailSent(true);
+    }
   };
 
   return (
@@ -46,19 +55,21 @@ export default function Login() {
         <View className="gap-6">
           <View className="gap-2">
             <Text variant="h3" className="text-left">
-              Entrar
+              Esqueci a senha
             </Text>
-            <Text variant="muted">Acesse sua conta para continuar</Text>
+            <Text variant="muted">
+              Informe seu e-mail para receber o link de redefinição
+            </Text>
           </View>
 
           <View className="gap-2">
-            <Label nativeID="login-email">E-mail</Label>
+            <Label nativeID="forgot-password-email">E-mail</Label>
             <Controller
               control={control}
               name="email"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
-                  nativeID="login-email"
+                  nativeID="forgot-password-email"
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -68,7 +79,8 @@ export default function Login() {
                   autoCorrect={false}
                   autoComplete="email"
                   textContentType="emailAddress"
-                  returnKeyType="next"
+                  returnKeyType="done"
+                  onSubmitEditing={handleSubmit(onSubmit)}
                   editable={!isPending}
                   aria-invalid={!!errors.email}
                   className={cn(errors.email && "border-destructive")}
@@ -82,51 +94,25 @@ export default function Login() {
             )}
           </View>
 
-          <View className="gap-2">
-            <Label nativeID="login-password">Senha</Label>
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  nativeID="login-password"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="••••••••"
-                  secureTextEntry
-                  autoComplete="password"
-                  textContentType="password"
-                  returnKeyType="done"
-                  onSubmitEditing={handleSubmit(onSubmit)}
-                  editable={!isPending}
-                  aria-invalid={!!errors.password}
-                  className={cn(errors.password && "border-destructive")}
-                />
-              )}
-            />
-            {errors.password && (
-              <Text className="text-destructive text-sm">
-                {errors.password.message}
-              </Text>
-            )}
-          </View>
-
-          <Link href="/auth/forgot-password" asChild>
-            <Button variant="link" disabled={isPending}>
-              <Text>Esqueci minha senha</Text>
-            </Button>
-          </Link>
-
           {error && <Text className="text-destructive text-sm">{error}</Text>}
 
+          {isEmailSent && (
+            <Alert icon={MailCheck} accessibilityLabel="E-mail enviado">
+              <AlertTitle>E-mail enviado</AlertTitle>
+              <AlertDescription>
+                Verifique sua caixa de entrada e a pasta de spam para redefinir
+                a senha.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <Button onPress={handleSubmit(onSubmit)} disabled={isPending}>
-            <Text>{isPending ? "Entrando..." : "Entrar"}</Text>
+            <Text>{isPending ? "Enviando..." : "Enviar e-mail"}</Text>
           </Button>
 
-          <Link href="/auth/register" asChild>
-            <Button variant="link" disabled={isPending}>
-              <Text>Criar uma conta</Text>
+          <Link href="/auth/login" asChild>
+            <Button variant="outline" disabled={isPending}>
+              <Text>Voltar ao login</Text>
             </Button>
           </Link>
         </View>

@@ -30,7 +30,7 @@ export class FirebaseCategoryRepository implements ICategoryRepository {
     const ref = doc(db, COLLECTION, id);
     const snap = await getDoc(ref);
     if (!snap.exists()) return null;
-    return { uid: snap.id, ...(snap.data() as any) } as Category;
+    return { uid: snap.id, ...(snap.data() as Omit<Category, "uid">) };
   }
 
   async listForUser(userId: string): Promise<Category[]> {
@@ -38,7 +38,7 @@ export class FirebaseCategoryRepository implements ICategoryRepository {
     const snapshot = await getDocs(q);
     return snapshot.docs.map((doc) => ({
       uid: doc.id,
-      ...(doc.data() as any),
-    })) as Category[];
+      ...(doc.data() as Omit<Category, "uid">),
+    }));
   }
 }

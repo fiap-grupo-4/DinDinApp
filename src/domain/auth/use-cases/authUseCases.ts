@@ -1,9 +1,8 @@
 import {
   IAuthRepository,
   AuthUser,
-  AuthState,
 } from "@domain/auth/repositories/IAuthRepository";
-import { CreateUserRequest } from "@domain/auth/entities/User";
+import { CreateUserRequest, User } from "@domain/auth/entities/User";
 
 export async function signIn(
   repository: IAuthRepository,
@@ -22,4 +21,18 @@ export async function register(
   data: CreateUserRequest,
 ): Promise<AuthUser> {
   return repository.register(data);
+}
+
+export async function forgotPassword(
+  repository: IAuthRepository,
+  email: string,
+): Promise<void> {
+  return repository.forgotPassword(email);
+}
+
+export async function getProfile(
+  repository: IAuthRepository,
+  uid: string,
+): Promise<User | null> {
+  return repository.getProfile(uid);
 }
