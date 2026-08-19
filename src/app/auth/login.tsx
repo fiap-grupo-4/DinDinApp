@@ -1,11 +1,14 @@
+import { AuthHeader } from "@/src/features/auth/ui/auth-header";
+import { IconInput } from "@/src/features/auth/ui/icon-input";
 import { Button } from "@/src/shared/ui/button";
-import { Input } from "@/src/shared/ui/input";
 import { Label } from "@/src/shared/ui/label";
 import { Text } from "@/src/shared/ui/text";
 import { loginSchema, type LoginFormData } from "@/src/lib/schemas/auth";
 import { cn } from "@/src/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { Lock, Mail } from "lucide-react-native";
 import { Controller, useForm } from "react-hook-form";
 import { useAuth } from "@features/auth/hooks/useAuth";
 import {
@@ -35,102 +38,131 @@ export default function Login() {
   };
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-background"
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <ScrollView
-        contentContainerClassName="flex-grow justify-center px-6 py-8"
-        keyboardShouldPersistTaps="handled"
+    <View className="flex-1 bg-brand-600">
+      <StatusBar style="light" />
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View className="gap-6">
-          <View className="gap-2">
-            <Text variant="h3" className="text-left">
-              Entrar
-            </Text>
-            <Text variant="muted">Acesse sua conta para continuar</Text>
-          </View>
+        <ScrollView
+          contentContainerClassName="flex-grow"
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+        >
+          <AuthHeader
+            title="Entrar"
+            subtitle="Informe seu e-mail e senha para acessar sua conta"
+          />
 
-          <View className="gap-2">
-            <Label nativeID="login-email">E-mail</Label>
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  nativeID="login-email"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="seu@email.com"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  autoComplete="email"
-                  textContentType="emailAddress"
-                  returnKeyType="next"
-                  editable={!isPending}
-                  aria-invalid={!!errors.email}
-                  className={cn(errors.email && "border-destructive")}
-                />
+          <View className="-mt-6 flex-1 gap-8 rounded-t-[32px] bg-gray-100 px-6 pb-10 pt-10">
+            <View className="gap-2">
+              <Label nativeID="login-email">E-mail</Label>
+              <Controller
+                control={control}
+                name="email"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <IconInput
+                    icon={Mail}
+                    nativeID="login-email"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder="exemplo@email.com"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="email"
+                    textContentType="emailAddress"
+                    returnKeyType="next"
+                    editable={!isPending}
+                    aria-invalid={!!errors.email}
+                    className={cn(errors.email && "border-destructive")}
+                  />
+                )}
+              />
+              {errors.email && (
+                <Text className="text-destructive text-sm">
+                  {errors.email.message}
+                </Text>
               )}
-            />
-            {errors.email && (
-              <Text className="text-destructive text-sm">
-                {errors.email.message}
-              </Text>
-            )}
-          </View>
+            </View>
 
-          <View className="gap-2">
-            <Label nativeID="login-password">Senha</Label>
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  nativeID="login-password"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="••••••••"
-                  secureTextEntry
-                  autoComplete="password"
-                  textContentType="password"
-                  returnKeyType="done"
-                  onSubmitEditing={handleSubmit(onSubmit)}
-                  editable={!isPending}
-                  aria-invalid={!!errors.password}
-                  className={cn(errors.password && "border-destructive")}
-                />
+            <View className="gap-2">
+              <Label nativeID="login-password">Senha</Label>
+              <Controller
+                control={control}
+                name="password"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <IconInput
+                    icon={Lock}
+                    nativeID="login-password"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder="••••••••"
+                    secureTextEntry
+                    autoComplete="password"
+                    textContentType="password"
+                    returnKeyType="done"
+                    onSubmitEditing={handleSubmit(onSubmit)}
+                    editable={!isPending}
+                    aria-invalid={!!errors.password}
+                    className={cn(errors.password && "border-destructive")}
+                  />
+                )}
+              />
+              {errors.password && (
+                <Text className="text-destructive text-sm">
+                  {errors.password.message}
+                </Text>
               )}
-            />
-            {errors.password && (
-              <Text className="text-destructive text-sm">
-                {errors.password.message}
-              </Text>
-            )}
+
+              <Link href="/auth/forgot-password" asChild>
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="native:h-auto self-end px-0 py-0"
+                  disabled={isPending}
+                >
+                  <Text className="text-brand-600 text-sm">
+                    Esqueceu a senha?
+                  </Text>
+                </Button>
+              </Link>
+            </View>
+
+            {error && <Text className="text-destructive text-sm">{error}</Text>}
+
+            <View className="gap-4">
+              <Button
+                onPress={handleSubmit(onSubmit)}
+                disabled={isPending}
+                className="bg-brand-600 active:bg-brand-700"
+              >
+                <Text>{isPending ? "Entrando..." : "Entrar"}</Text>
+              </Button>
+
+              <View className="flex-row items-center gap-3">
+                <View className="h-px flex-1 bg-brand-600" />
+                <Text variant="muted" className="text-sm text-brand-600">
+                  ou
+                </Text>
+                <View className="h-px flex-1 bg-brand-600" />
+              </View>
+
+              <Link href="/auth/register" asChild>
+                <Button
+                  variant="outline"
+                  disabled={isPending}
+                  className="border-brand-600"
+                >
+                  <Text className="text-brand-600">Criar conta</Text>
+                </Button>
+              </Link>
+            </View>
           </View>
-
-          <Link href="/auth/forgot-password" asChild>
-            <Button variant="link" disabled={isPending}>
-              <Text>Esqueci minha senha</Text>
-            </Button>
-          </Link>
-
-          {error && <Text className="text-destructive text-sm">{error}</Text>}
-
-          <Button onPress={handleSubmit(onSubmit)} disabled={isPending}>
-            <Text>{isPending ? "Entrando..." : "Entrar"}</Text>
-          </Button>
-
-          <Link href="/auth/register" asChild>
-            <Button variant="link" disabled={isPending}>
-              <Text>Criar uma conta</Text>
-            </Button>
-          </Link>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
