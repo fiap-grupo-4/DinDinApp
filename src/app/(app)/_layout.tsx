@@ -1,4 +1,4 @@
-import { AppBottomBar } from "@features/app-shell/ui/app-bottom-bar";
+import { AppBottomBar } from "@/src/shared/ui/app-bottom-bar";
 import { useRequireAuth } from "@features/auth/hooks/useRequireAuth";
 import { useAuthState } from "@/src/features/auth/providers/AuthProvider";
 import { Text } from "@/src/shared/ui/text";

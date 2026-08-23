@@ -64,7 +64,9 @@ export class FirebaseTransactionRepository implements ITransactionRepository {
     const lim = filters?.limit ?? 20;
     q = query(q, limit(lim));
 
+    console.log("vai chamar o getDocs:");
     const snapshot = await getDocs(q);
+    console.log("snapshot:", snapshot);
     const data = snapshot.docs.map((d) => ({
       uid: d.id,
       ...(d.data() as Omit<Transaction, "uid">),

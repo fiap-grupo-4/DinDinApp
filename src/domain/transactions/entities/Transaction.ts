@@ -1,7 +1,7 @@
 export interface Transaction {
   uid: string;
   userId: string;
-  value: number;
+  valueInCents: number;
   transactionType: "income" | "outcome";
   createdAt: string;
   description?: string;

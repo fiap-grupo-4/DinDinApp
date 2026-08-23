@@ -1,4 +1,4 @@
-import AccountScreen from "@features/auth/ui/account-screen";
+import AccountScreen from "@/src/features/auth/ui/AccountScreen";
 
 export default function Account() {
   return <AccountScreen />;

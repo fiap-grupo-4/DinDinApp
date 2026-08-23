@@ -7,7 +7,13 @@ import {
   onAuthStateChanged,
   User as FirebaseUser,
 } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
+  Timestamp,
+} from "firebase/firestore";
 import { auth, db } from "@/src/lib/firebase";
 import {
   IAuthRepository,
@@ -73,6 +79,7 @@ export class FirebaseAuthRepository implements IAuthRepository {
       await updateProfile(user, { displayName: data.fullName });
     } catch (err) {
       console.error("Falha ao atualizar o perfil no Auth:", err);
+      throw err;
     }
 
     try {
