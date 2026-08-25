@@ -57,6 +57,20 @@ EXPO_PUBLIC_FIREBASE_APP_ID=
 
 > As chaves podem ser obtidas no [Console do Firebase](https://console.firebase.google.com/) em Configurações do projeto > Seus apps > SDK do Firebase.
 
+### Regras do Firestore
+
+As regras e os índices ficam junto da infraestrutura compartilhada em `src/lib/firebase/`. Eles permitem que cada usuário autenticado acesse somente os próprios dados. O `firebase.json` permanece na raiz, conforme a convenção da Firebase CLI, e aponta para esses arquivos.
+
+Antes de usar categorias, transações ou metas de economia, publique as regras e os índices no projeto Firebase:
+
+```bash
+npx firebase-tools login
+npx firebase-tools use <project-id>
+npx firebase-tools deploy --only firestore
+```
+
+O `<project-id>` deve ser o mesmo configurado em `EXPO_PUBLIC_FIREBASE_PROJECT_ID`.
+
 ## Executando o app
 
 ```bash
