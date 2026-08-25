@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { View, Text } from "react-native";
+import { ScrollView, View } from "react-native";
+import { ScreenHeader } from "@/src/shared/ui/screen-header";
+import { Text } from "@/src/shared/ui/text";
 import { useTransactionRepository } from "@features/transactions/providers/TransactionRepositoryProvider";
 import { listTransactions } from "@domain/transactions/use-cases/transactionUseCases";
 import { Transaction } from "@domain/transactions/entities/Transaction";
@@ -31,16 +33,27 @@ export const TransactionsScreen: React.FC = () => {
   }, [repository]);
 
   return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-      <Text>Transactions</Text>
-      {loading ? (
-        <Text>Loading...</Text>
-      ) : error ? (
-        <Text>{error}</Text>
-      ) : (
-        <Text>Total loaded: {transactions.length}</Text>
-      )}
-    </View>
+    <ScrollView
+      className="flex-1 bg-background"
+      contentContainerClassName="flex-grow gap-6 px-6 py-8"
+    >
+      <ScreenHeader
+        title="Transações"
+        subtitle="Acompanhe suas movimentações financeiras."
+      />
+
+      <View className="items-center justify-center gap-2">
+        {loading ? (
+          <Text variant="muted">Carregando...</Text>
+        ) : error ? (
+          <Text variant="muted">{error}</Text>
+        ) : (
+          <Text variant="muted">
+            Total carregado: {transactions.length}
+          </Text>
+        )}
+      </View>
+    </ScrollView>
   );
 };
 
