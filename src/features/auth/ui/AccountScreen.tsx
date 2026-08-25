@@ -6,6 +6,7 @@ import {
   CardDescription,
   CardHeader,
 } from "@/src/shared/ui/card";
+import { ScreenHeader } from "@/src/shared/ui/screen-header";
 import { Separator } from "@/src/shared/ui/separator";
 import { Skeleton } from "@/src/shared/ui/skeleton";
 import { Text } from "@/src/shared/ui/text";
@@ -51,6 +52,8 @@ function AccountProfileSkeleton() {
         <Skeleton className="h-4 w-52" />
       </CardHeader>
       <CardContent className="gap-4">
+        <Separator />
+        <Skeleton className="h-12 w-full" />
         <Skeleton className="h-12 w-full" />
         <Skeleton className="h-12 w-full" />
         <Skeleton className="h-12 w-full" />
@@ -77,8 +80,10 @@ function ProfileField({
 }
 
 export function AccountScreen() {
-  const { profile } = useCurrentUserProfile();
+  const { profile, isLoading } = useCurrentUserProfile();
   const { handleSignOut, isPending } = useAuth();
+
+  const showSkeleton = !profile || isLoading;
 
   const displayName = profile?.fullName.trim() || "Nome não informado";
   const displayEmail = profile?.email.trim() || "E-mail não disponível";
@@ -94,16 +99,12 @@ export function AccountScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View className="gap-6">
-        <View className="gap-2">
-          <Text variant="h3" className="text-left">
-            Conta
-          </Text>
-          <Text variant="muted">
-            Veja seus dados e saia da sessão quando quiser.
-          </Text>
-        </View>
+        <ScreenHeader
+          title="Conta"
+          subtitle="Veja seus dados e saia da sessão quando quiser."
+        />
 
-        {!profile ? (
+        {showSkeleton ? (
           <AccountProfileSkeleton />
         ) : (
           <Card>

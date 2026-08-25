@@ -28,10 +28,12 @@ export function useCurrentUserProfile() {
   const [profile, setProfile] = useState<User | null>(
     uid ? toFallbackProfile(uid, email, displayName) : null,
   );
+  const [isLoading, setIsLoading] = useState(!!uid);
 
   useEffect(() => {
     if (!uid) {
       setProfile(null);
+      setIsLoading(false);
       return;
     }
 
@@ -39,6 +41,7 @@ export function useCurrentUserProfile() {
     let isCancelled = false;
 
     setProfile(fallback);
+    setIsLoading(true);
 
     getProfile(repository, uid)
       .then((data) => {
@@ -58,6 +61,10 @@ export function useCurrentUserProfile() {
       .catch(() => {
         if (isCancelled) return;
         setProfile(fallback);
+      })
+      .finally(() => {
+        if (isCancelled) return;
+        setIsLoading(false);
       });
 
     return () => {
@@ -65,5 +72,5 @@ export function useCurrentUserProfile() {
     };
   }, [repository, uid, email, displayName]);
 
-  return { profile };
+  return { profile, isLoading };
 }
