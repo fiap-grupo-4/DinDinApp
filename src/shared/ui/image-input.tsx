@@ -1,4 +1,8 @@
 import { Icon } from "@/src/shared/ui/icon";
+import {
+  hideFullWindowOverlay,
+  showFullWindowOverlay,
+} from "@/src/shared/ui/full-window-overlay-visibility";
 import { Text } from "@/src/shared/ui/text";
 import { cn } from "@/src/lib/utils";
 import * as ImagePicker from "expo-image-picker";
@@ -28,23 +32,28 @@ export function ImageInput({
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      quality: 0.7,
-    });
+    hideFullWindowOverlay();
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        quality: 0.7,
+      });
 
-    if (!result.canceled && result.assets?.[0]) {
-      onChange(result.assets[0].uri);
+      if (!result.canceled && result.assets?.[0]) {
+        onChange(result.assets[0].uri);
+      }
+    } finally {
+      showFullWindowOverlay();
     }
   }
 
   if (value) {
     return (
-      <View className={cn("relative self-start", className)}>
+      <View className={cn("relative w-full", className)}>
         <Image
           source={{ uri: value }}
-          className="h-32 w-32 rounded-md"
+          className="h-[200px] w-full rounded-md"
           resizeMode="cover"
         />
         {!disabled && (
@@ -66,7 +75,7 @@ export function ImageInput({
       onPress={handlePick}
       disabled={disabled}
       className={cn(
-        "border-input bg-background h-32 w-32 items-center justify-center gap-1 self-start rounded-md border border-dashed",
+        "border-input bg-background h-[200px] w-full items-center justify-center gap-1 rounded-md border border-dashed",
         disabled && "opacity-50",
         className,
       )}

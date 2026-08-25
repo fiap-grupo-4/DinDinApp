@@ -1,7 +1,7 @@
+import { cn } from "@/src/lib/utils";
 import { Icon } from "@/src/shared/ui/icon";
 import { NativeOnlyAnimatedView } from "@/src/shared/ui/native-only-animated-view";
 import { TextClassContext } from "@/src/shared/ui/text";
-import { cn } from "@/src/lib/utils";
 import * as SelectPrimitive from "@rn-primitives/select";
 import {
   Check,
@@ -83,11 +83,14 @@ function SelectContent({
   children,
   position = "popper",
   portalHost,
+  style,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content> & {
   className?: string;
   portalHost?: string;
 }) {
+  const { triggerPosition } = SelectPrimitive.useRootContext();
+
   return (
     <SelectPrimitive.Portal hostName={portalHost}>
       <FullWindowOverlay>
@@ -114,15 +117,23 @@ function SelectContent({
                     native: "p-1",
                   }),
                   position === "popper" &&
-                    Platform.select({
-                      web: cn(
-                        props.side === "bottom" && "translate-y-1",
-                        props.side === "top" && "-translate-y-1",
-                      ),
-                    }),
+                  Platform.select({
+                    web: cn(
+                      props.side === "bottom" && "translate-y-1",
+                      props.side === "top" && "-translate-y-1",
+                    ),
+                  }),
                   className,
                 )}
                 position={position}
+                style={
+                  Platform.OS !== "web" && triggerPosition
+                    ? {
+                      ...StyleSheet.flatten(style ?? {}),
+                      width: triggerPosition.width,
+                    }
+                    : StyleSheet.flatten(style ?? {})
+                }
                 {...props}
               >
                 <SelectScrollUpButton />
@@ -130,12 +141,12 @@ function SelectContent({
                   className={cn(
                     "p-1",
                     position === "popper" &&
-                      cn(
-                        "w-full",
-                        Platform.select({
-                          web: "h-[var(--radix-select-trigger-height)] min-w-[var(--radix-select-trigger-width)]",
-                        }),
-                      ),
+                    cn(
+                      "w-full",
+                      Platform.select({
+                        web: "h-[var(--radix-select-trigger-height)] min-w-[var(--radix-select-trigger-width)]",
+                      }),
+                    ),
                   )}
                 >
                   {children}
@@ -267,5 +278,6 @@ export {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-  type Option,
+  type Option
 };
+

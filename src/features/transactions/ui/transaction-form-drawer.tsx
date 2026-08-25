@@ -59,6 +59,14 @@ function toFieldValue(valueInCents: number): string {
   });
 }
 
+const MOCK_CATEGORIES: Category[] = [
+  { uid: "mock-alimentacao", userId: "mock", name: "Alimentação", createdAt: "" },
+  { uid: "mock-transporte", userId: "mock", name: "Transporte", createdAt: "" },
+  { uid: "mock-moradia", userId: "mock", name: "Moradia", createdAt: "" },
+  { uid: "mock-lazer", userId: "mock", name: "Lazer", createdAt: "" },
+  { uid: "mock-saude", userId: "mock", name: "Saúde", createdAt: "" },
+];
+
 export function TransactionFormDrawer({
   open,
   onOpenChange,
@@ -67,7 +75,9 @@ export function TransactionFormDrawer({
 }: TransactionFormDrawerProps) {
   const isEditing = !!transaction;
   const { user } = useAuthState();
-  const { categories } = useCategories(user?.uid ?? "");
+  const { categories: fetchedCategories } = useCategories(user?.uid ?? "");
+  const categories =
+    fetchedCategories.length > 0 ? fetchedCategories : MOCK_CATEGORIES;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);

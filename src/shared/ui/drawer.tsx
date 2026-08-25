@@ -1,4 +1,5 @@
 import { Icon } from "@/src/shared/ui/icon";
+import { useFullWindowOverlayVisible } from "@/src/shared/ui/full-window-overlay-visibility";
 import { NativeOnlyAnimatedView } from "@/src/shared/ui/native-only-animated-view";
 import { cn } from "@/src/lib/utils";
 import * as DialogPrimitive from "@rn-primitives/dialog";
@@ -30,9 +31,6 @@ const DrawerPortal = DialogPrimitive.Portal;
 
 const DrawerClose = DialogPrimitive.Close;
 
-const FullWindowOverlay =
-  Platform.OS === "ios" ? RNFullWindowOverlay : React.Fragment;
-
 function DrawerOverlay({
   className,
   children,
@@ -42,6 +40,12 @@ function DrawerOverlay({
   children?: React.ReactNode;
 }) {
   const { onOpenChange } = DialogPrimitive.useRootContext();
+  const isOverlayVisible = useFullWindowOverlayVisible();
+
+  const FullWindowOverlay =
+    Platform.OS === "ios" && isOverlayVisible
+      ? RNFullWindowOverlay
+      : React.Fragment;
 
   function onOverlayPress(event: GestureResponderEvent) {
     onPress?.(event);
@@ -112,7 +116,7 @@ function DrawerContent({
             <View className="bg-muted mb-1 mt-3 h-1.5 w-12 self-center rounded-full" />
             <ScrollView
               className="flex-1"
-              contentContainerClassName="gap-4 px-6 pb-8 pt-2"
+              contentContainerClassName="gap-4 px-6 pb-10 pt-2"
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >

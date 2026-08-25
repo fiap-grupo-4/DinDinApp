@@ -94,30 +94,30 @@ export const TransactionsScreen: React.FC = () => {
       className="flex-1 bg-background"
       contentContainerClassName="flex-grow gap-6 px-6 py-8"
     >
-      <View className="flex-row items-center justify-between">
-        <ScreenHeader
-          title="Transações"
-          subtitle="Acompanhe suas movimentações financeiras."
-        />
+      <ScreenHeader
+        title="Transações"
+        subtitle="Acompanhe suas movimentações financeiras."
+      />
+
+      <View className="flex-row items-center justify-between gap-3">
         <Button
-          className="bg-brand-600 active:bg-brand-700"
+          variant="outline"
+          className="flex-1"
+          onPress={() => setIsFiltersOpen(true)}
+        >
+          <Icon as={ListFilter} size={16} />
+          <Text>
+            Filtros{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+          </Text>
+        </Button>
+        <Button
+          className="flex-1 bg-brand-600 active:bg-brand-700"
           onPress={handleAdd}
         >
-          <Text>Nova Transação</Text>
           <Icon as={Plus} size={16} className="text-white" />
+          <Text>Nova Transação</Text>
         </Button>
       </View>
-
-      <Button
-        variant="outline"
-        className="self-start"
-        onPress={() => setIsFiltersOpen(true)}
-      >
-        <Icon as={ListFilter} size={16} />
-        <Text>
-          Filtros{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-        </Text>
-      </Button>
 
       <View className="gap-3">
         {isLoading ? (
