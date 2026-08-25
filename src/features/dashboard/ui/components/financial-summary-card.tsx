@@ -21,6 +21,7 @@ type FinancialSummaryCardProps = {
   title?: string;
   daily: FinancialSummary;
   monthly: FinancialSummary;
+  valuesVisible: boolean;
   onAddTransaction?: () => void;
 };
 
@@ -28,6 +29,8 @@ const DESCRIPTIONS: Record<FinancialSummaryPeriod, string> = {
   day: "Veja um resumo de suas transações de hoje.",
   month: "Veja um resumo de suas transações do mês atual.",
 };
+
+const HIDDEN_VALUE = "R$ *****";
 
 function formatCurrency(value: number) {
   return value.toLocaleString("pt-BR", {
@@ -40,6 +43,7 @@ export function FinancialSummaryCard({
   title = "Resumo Financeiro",
   daily,
   monthly,
+  valuesVisible,
   onAddTransaction,
 }: FinancialSummaryCardProps) {
   const router = useRouter();
@@ -103,7 +107,9 @@ export function FinancialSummaryCard({
               Entrada
             </Text>
             <Text className="text-lg font-semibold text-brand-500">
-              + {formatCurrency(summary.income)}
+              {valuesVisible
+                ? `+ ${formatCurrency(summary.income)}`
+                : HIDDEN_VALUE}
             </Text>
           </View>
           <View className="flex-1 gap-1 rounded-lg bg-muted p-3">
@@ -111,7 +117,9 @@ export function FinancialSummaryCard({
               Saída
             </Text>
             <Text className="text-lg font-semibold text-danger-400">
-              - {formatCurrency(summary.expense)}
+              {valuesVisible
+                ? `- ${formatCurrency(summary.expense)}`
+                : HIDDEN_VALUE}
             </Text>
           </View>
         </View>

@@ -5,6 +5,7 @@
   "dependencies": {
     "@hookform/resolvers": "^5.7.1",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/datetimepicker": "8.4.4",
     "@rn-primitives/accordion": "^1.5.2",
     "@rn-primitives/alert-dialog": "^1.5.2",
     "@rn-primitives/aspect-ratio": "^1.5.2",
@@ -33,6 +34,7 @@
     "clsx": "^2.1.1",
     "expo": "~54.0.0",
     "expo-constants": "~18.0.13",
+    "expo-image-picker": "~17.0.11",
     "expo-linear-gradient": "~15.0.8",
     "expo-linking": "~8.0.12",
     "expo-router": "~6.0.24",

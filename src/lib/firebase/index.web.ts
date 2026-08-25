@@ -4,7 +4,7 @@ import {
   indexedDBLocalPersistence,
   initializeAuth,
 } from "firebase/auth";
-import { app, db } from "./app";
+import { app, db, storage } from "./app";
 
 function createAuth() {
   try {
@@ -18,4 +18,4 @@ function createAuth() {
 
 const auth = createAuth();
 
-export { app, auth, db };
+export { app, auth, db, storage };

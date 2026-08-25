@@ -5,6 +5,7 @@ import { SavingsGoalFormDrawer } from "@features/savings/ui/savings-goal-form-dr
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView } from "react-native";
+import { BalanceCard } from "./components/balance-card";
 import {
   BalanceTrendCard,
   type BalancePoint,
@@ -54,9 +55,12 @@ const RECENT_TRANSACTIONS: RecentTransaction[] = [
   { id: "5", title: "Mercado", amount: 150, date: "12/04/2026" },
 ];
 
+const CURRENT_BALANCE = BALANCE_DATA[BALANCE_DATA.length - 1].value;
+
 export function DashboardScreen() {
   const router = useRouter();
   const [transactions, setTransactions] = useState(RECENT_TRANSACTIONS);
+  const [valuesVisible, setValuesVisible] = useState(false);
   const { goals, addGoal, editGoal, removeGoal } = useSavingsGoals();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -94,7 +98,16 @@ export function DashboardScreen() {
         title="Início"
         subtitle="Acompanhe seu resumo financeiro e suas metas."
       />
-      <FinancialSummaryCard daily={DAILY_SUMMARY} monthly={MONTHLY_SUMMARY} />
+      <BalanceCard
+        balance={CURRENT_BALANCE}
+        visible={valuesVisible}
+        onToggleVisible={() => setValuesVisible((visible) => !visible)}
+      />
+      <FinancialSummaryCard
+        daily={DAILY_SUMMARY}
+        monthly={MONTHLY_SUMMARY}
+        valuesVisible={valuesVisible}
+      />
       <ExpensesBreakdownCard data={EXPENSES_DATA} />
       <BalanceTrendCard data={BALANCE_DATA} />
       <RecentTransactionsCard

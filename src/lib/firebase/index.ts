@@ -4,11 +4,11 @@ import {
   initializeAuth,
   type Persistence,
 } from "firebase/auth";
-import { app, db } from "./app";
+import { app, db, storage } from "./app";
 
 type ReactNativeAuthModule = {
   getReactNativePersistence: (
-    storage: typeof AsyncStorage,
+    asyncStorage: typeof AsyncStorage,
   ) => Persistence;
 };
 
@@ -31,4 +31,4 @@ function createAuth() {
 
 const auth = createAuth();
 
-export { app, auth, db };
+export { app, auth, db, storage };
