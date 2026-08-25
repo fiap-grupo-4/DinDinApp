@@ -1,10 +1,10 @@
-import { Text } from "@/src/shared/ui/text";
-import { View } from "react-native";
+import { DashboardScreen } from "@/src/features/dashboard/ui/dashboard-screen";
+import { SavingsGoalRepositoryProvider } from "@features/savings/providers/SavingsGoalRepositoryProvider";
 
 export default function Dashboard() {
   return (
-    <View className="flex-1 items-center justify-center bg-background">
-      <Text>Dashbaord</Text>
-    </View>
+    <SavingsGoalRepositoryProvider>
+      <DashboardScreen />
+    </SavingsGoalRepositoryProvider>
   );
 }
