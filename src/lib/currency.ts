@@ -36,3 +36,18 @@ const brlFormatter = new Intl.NumberFormat("pt-BR", {
 export function formatCurrency(valueInCents: number): string {
   return brlFormatter.format(fromCents(valueInCents));
 }
+
+export function parseCurrencyInput(value: string): number {
+  const normalized = value.trim().replace(/\./g, "").replace(",", ".");
+  return Number(normalized);
+}
+
+export function maskCurrencyInput(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  const cents = digits ? Number(digits) : 0;
+
+  return fromCents(cents).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
