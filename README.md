@@ -57,9 +57,9 @@ EXPO_PUBLIC_FIREBASE_APP_ID=
 
 > As chaves podem ser obtidas no [Console do Firebase](https://console.firebase.google.com/) em Configurações do projeto > Seus apps > SDK do Firebase.
 
-### Regras do Firestore
+### Firebase Security Rules
 
-As regras e os índices ficam junto da infraestrutura compartilhada em `src/lib/firebase/`. Eles permitem que cada usuário autenticado acesse somente os próprios dados. O `firebase.json` permanece na raiz, conforme a convenção da Firebase CLI, e aponta para esses arquivos.
+As regras do Firestore e do Storage, além dos índices, ficam junto da infraestrutura compartilhada em `src/lib/firebase/`. Elas permitem que cada usuário autenticado acesse somente os próprios dados e comprovantes. O `firebase.json` permanece na raiz, conforme a convenção da Firebase CLI, e aponta para esses arquivos.
 
 Antes de usar categorias, transações ou metas de economia, publique as regras e os índices no projeto Firebase:
 
@@ -70,6 +70,14 @@ npx firebase-tools deploy --only firestore
 ```
 
 O `<project-id>` deve ser o mesmo configurado em `EXPO_PUBLIC_FIREBASE_PROJECT_ID`.
+
+Para usar comprovantes, habilite o Cloud Storage no Console do Firebase, configure `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET` com o bucket criado e publique as regras:
+
+```bash
+npx firebase-tools deploy --only storage
+```
+
+Os comprovantes são aceitos somente como imagens de até 5 MB e ficam em `receipts/{userId}/`. As operações feitas pelo SDK exigem que o usuário autenticado seja o proprietário; as URLs de download geradas devem ser tratadas como dados privados e não devem ser compartilhadas.
 
 ## Executando o app
 
@@ -166,6 +174,23 @@ npm run check-all
 | `npm run format`      | Aplica correções de lint do Biome       |
 | `npm run check-types` | Verifica os tipos com TypeScript        |
 | `npm run check-all`   | Format + lint + type-check              |
+| `npm run generate:mocks` | Cria categorias e transações de exemplo no Firestore |
+
+### Gerando dados de exemplo
+
+O seed carrega automaticamente o arquivo `.env`. Informe o UID de um usuário já cadastrado:
+
+```env
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=seu-project-id
+SEED_USER_ID=uid-do-usuario
+```
+
+O script usa credenciais administrativas locais. Autentique o Application Default Credentials e execute o comando:
+
+```bash
+gcloud auth application-default login
+npm run generate:mocks
+```
 
 ## Licença
 

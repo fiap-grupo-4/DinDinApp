@@ -12,6 +12,8 @@ export async function uploadTransactionReceipt(
   const path = `receipts/${userId}/${Date.now()}.${extension}`;
   const storageRef = ref(storage, path);
 
-  await uploadBytes(storageRef, blob);
+  await uploadBytes(storageRef, blob, {
+    contentType: blob.type || `image/${extension === "jpg" ? "jpeg" : extension}`,
+  });
   return getDownloadURL(storageRef);
 }

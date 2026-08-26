@@ -1,16 +1,24 @@
+import "dotenv/config";
 import { applicationDefault, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
+const projectId = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID;
+const userId = process.env.SEED_USER_ID;
+
+if (!projectId) {
+  throw new Error("Informe EXPO_PUBLIC_FIREBASE_PROJECT_ID no arquivo .env.");
+}
+
+if (!userId) {
+  throw new Error("Informe SEED_USER_ID no arquivo .env.");
+}
+
 initializeApp({
   credential: applicationDefault(),
+  projectId,
 });
 
 const db = getFirestore();
-const userId = process.env.SEED_USER_ID;
-
-if (!userId) {
-  throw new Error("Informe SEED_USER_ID.");
-}
 
 const userSnapshot = await db.collection("users").doc(userId).get();
 
