@@ -16,9 +16,18 @@ import { TransactionFiltersValue } from "@features/transactions/ui/transaction-f
 
 const LIST_LIMIT = 100;
 
-export function useTransactions(filters: TransactionFiltersValue) {
+type UseTransactionsOptions = {
+  limit?: number | null;
+};
+
+export function useTransactions(
+  filters: TransactionFiltersValue,
+  options?: UseTransactionsOptions,
+) {
   const repository = useTransactionRepository();
   const { user } = useAuthState();
+  const listLimit =
+    options?.limit === null ? undefined : (options?.limit ?? LIST_LIMIT);
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,7 +39,11 @@ export function useTransactions(filters: TransactionFiltersValue) {
     setIsLoading(true);
     setError(null);
 
-    listTransactions(repository, user.uid, { limit: LIST_LIMIT })
+    listTransactions(
+      repository,
+      user.uid,
+      listLimit === undefined ? undefined : { limit: listLimit },
+    )
       .then((result) => setTransactions(result.data))
       .catch((err) => {
         setError(
@@ -40,7 +53,7 @@ export function useTransactions(filters: TransactionFiltersValue) {
         );
       })
       .finally(() => setIsLoading(false));
-  }, [repository, user]);
+  }, [repository, user, listLimit]);
 
   useEffect(() => {
     refresh();

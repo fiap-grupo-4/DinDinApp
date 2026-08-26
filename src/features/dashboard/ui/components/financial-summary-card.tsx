@@ -1,19 +1,20 @@
 import { Button } from "@/src/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader } from "@/src/shared/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+} from "@/src/shared/ui/card";
 import { Icon } from "@/src/shared/ui/icon";
 import { Tabs, TabsList, TabsTrigger } from "@/src/shared/ui/tabs";
 import { Text } from "@/src/shared/ui/text";
 import { cn } from "@/src/lib/utils";
+import type { FinancialSummary } from "@features/dashboard/models/dashboard-metrics";
 import { useRouter } from "expo-router";
 import { Plus } from "lucide-react-native";
 import * as React from "react";
 import { View } from "react-native";
 import { SectionHeading } from "./section-heading";
-
-export type FinancialSummary = {
-  income: number;
-  expense: number;
-};
 
 type FinancialSummaryPeriod = "day" | "month";
 
@@ -64,9 +65,7 @@ export function FinancialSummaryCard({
         <SectionHeading title={title} />
         <Tabs
           value={period}
-          onValueChange={(value) =>
-            setPeriod(value as FinancialSummaryPeriod)
-          }
+          onValueChange={(value) => setPeriod(value as FinancialSummaryPeriod)}
         >
           <TabsList className="bg-muted">
             <TabsTrigger
@@ -106,7 +105,7 @@ export function FinancialSummaryCard({
             <Text variant="muted" className="text-sm">
               Entrada
             </Text>
-            <Text className="text-lg font-semibold text-brand-500">
+            <Text className="text-base font-semibold text-brand-500">
               {valuesVisible
                 ? `+ ${formatCurrency(summary.income)}`
                 : HIDDEN_VALUE}
@@ -116,7 +115,7 @@ export function FinancialSummaryCard({
             <Text variant="muted" className="text-sm">
               Saída
             </Text>
-            <Text className="text-lg font-semibold text-danger-400">
+            <Text className="text-base font-semibold text-danger-400">
               {valuesVisible
                 ? `- ${formatCurrency(summary.expense)}`
                 : HIDDEN_VALUE}
@@ -124,7 +123,10 @@ export function FinancialSummaryCard({
           </View>
         </View>
 
-        <Button onPress={handleAddTransaction} className="bg-brand-600 active:bg-brand-700">
+        <Button
+          onPress={handleAddTransaction}
+          className="bg-brand-600 active:bg-brand-700"
+        >
           <Icon as={Plus} size={16} />
           <Text>Nova transação</Text>
         </Button>

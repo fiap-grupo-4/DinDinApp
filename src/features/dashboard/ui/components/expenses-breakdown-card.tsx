@@ -1,15 +1,9 @@
 import { Card, CardContent, CardHeader } from "@/src/shared/ui/card";
 import { Text } from "@/src/shared/ui/text";
+import type { ExpenseCategory } from "@features/dashboard/models/dashboard-metrics";
 import { View } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 import { SectionHeading } from "./section-heading";
-
-export type ExpenseCategory = {
-  id: string;
-  label: string;
-  total: number;
-  color: string;
-};
 
 type ExpensesBreakdownCardProps = {
   title?: string;
@@ -33,13 +27,19 @@ export function ExpensesBreakdownCard({
         <SectionHeading title={title} />
       </CardHeader>
       <CardContent className="items-center gap-4">
-        <PieChart
-          data={pieData}
-          donut
-          radius={64}
-          innerRadius={40}
-          innerCircleColor="white"
-        />
+        {data.length === 0 ? (
+          <Text variant="muted" className="py-4 text-center text-sm">
+            Nenhuma saída registrada neste mês.
+          </Text>
+        ) : (
+          <PieChart
+            data={pieData}
+            donut
+            radius={64}
+            innerRadius={40}
+            innerCircleColor="white"
+          />
+        )}
         <View className="w-full flex-row flex-wrap gap-x-4 gap-y-2.5">
           {data.map((category) => {
             const percentage = totalSpent

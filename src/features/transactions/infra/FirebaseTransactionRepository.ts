@@ -61,8 +61,10 @@ export class FirebaseTransactionRepository implements ITransactionRepository {
       where("userId", "==", userId),
       orderBy("createdAt", "desc"),
     );
-    const lim = filters?.limit ?? 20;
-    q = query(q, limit(lim));
+    const lim = filters?.limit;
+    if (lim !== undefined) {
+      q = query(q, limit(lim));
+    }
 
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map((d) => ({
@@ -71,7 +73,10 @@ export class FirebaseTransactionRepository implements ITransactionRepository {
     }));
     return {
       data,
-      nextCursor: data.length === lim ? data[data.length - 1].uid : null,
+      nextCursor:
+        lim !== undefined && data.length === lim
+          ? data[data.length - 1].uid
+          : null,
     };
   }
 }

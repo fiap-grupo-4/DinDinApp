@@ -1,67 +1,60 @@
 import { ScreenHeader } from "@/src/shared/ui/screen-header";
+import { Text } from "@/src/shared/ui/text";
 import { SavingsGoal } from "@domain/savings/entities/SavingsGoal";
+import { useAuthState } from "@features/auth/providers/AuthProvider";
+import { useCategories } from "@features/categories/hooks/useCategories";
+import { useDashboardMetrics } from "@features/dashboard/hooks/useDashboardMetrics";
 import { useSavingsGoals } from "@features/savings/hooks/useSavingsGoals";
 import { SavingsGoalFormDrawer } from "@features/savings/ui/savings-goal-form-drawer";
+import { useTransactions } from "@features/transactions/hooks/useTransactions";
+import { TransactionFiltersValue } from "@features/transactions/ui/transaction-filters-drawer";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView } from "react-native";
 import { BalanceCard } from "./components/balance-card";
-import {
-  BalanceTrendCard,
-  type BalancePoint,
-} from "./components/balance-trend-card";
-import {
-  FinancialSummaryCard,
-  type FinancialSummary,
-} from "./components/financial-summary-card";
-import {
-  ExpensesBreakdownCard,
-  type ExpenseCategory,
-} from "./components/expenses-breakdown-card";
-import {
-  RecentTransactionsCard,
-  type RecentTransaction,
-} from "./components/recent-transactions-card";
+import { BalanceTrendCard } from "./components/balance-trend-card";
+import { ExpensesBreakdownCard } from "./components/expenses-breakdown-card";
+import { FinancialSummaryCard } from "./components/financial-summary-card";
+import { RecentTransactionsCard } from "./components/recent-transactions-card";
 import { SavingsGoalsCard } from "./components/savings-goals-card";
 
-const DAILY_SUMMARY: FinancialSummary = { income: 150, expense: 150 };
-const MONTHLY_SUMMARY: FinancialSummary = { income: 3200, expense: 2450 };
-
-const EXPENSES_DATA: ExpenseCategory[] = [
-  { id: "mercado", label: "Mercado", total: 960, color: "#F45B8D" },
-  { id: "transporte", label: "Transporte", total: 540, color: "#F5A445" },
-  { id: "lazer", label: "Lazer", total: 450, color: "#8B7CF6" },
-  { id: "contas", label: "Contas Fixas", total: 420, color: "#B7BDC6" },
-  { id: "saude", label: "Saúde", total: 360, color: "#4ECDC4" },
-  { id: "outros", label: "Outros", total: 270, color: "#F6C744" },
-];
-
-const BALANCE_DATA: BalancePoint[] = [
-  { label: "Jan", value: 6000 },
-  { label: "Fev", value: 5500 },
-  { label: "Mar", value: 9500 },
-  { label: "Abr", value: 10000 },
-  { label: "Mai", value: 10500 },
-  { label: "Jun", value: 10000 },
-  { label: "Jul", value: 9500 },
-  { label: "Ago", value: 12500 },
-];
-
-const RECENT_TRANSACTIONS: RecentTransaction[] = [
-  { id: "1", title: "Mercado", amount: 150, date: "12/04/2026" },
-  { id: "2", title: "Mercado", amount: 150, date: "12/04/2026" },
-  { id: "3", title: "Mercado", amount: 150, date: "12/04/2026" },
-  { id: "4", title: "Mercado", amount: 150, date: "12/04/2026" },
-  { id: "5", title: "Mercado", amount: 150, date: "12/04/2026" },
-];
-
-const CURRENT_BALANCE = BALANCE_DATA[BALANCE_DATA.length - 1].value;
+const DASHBOARD_FILTERS: TransactionFiltersValue = { search: "" };
 
 export function DashboardScreen() {
   const router = useRouter();
-  const [transactions, setTransactions] = useState(RECENT_TRANSACTIONS);
+  const { user } = useAuthState();
   const [valuesVisible, setValuesVisible] = useState(false);
-  const { goals, addGoal, editGoal, removeGoal } = useSavingsGoals();
+  const {
+    transactions,
+    isLoading: isLoadingTransactions,
+    error: transactionsError,
+    removeTransaction,
+  } = useTransactions(DASHBOARD_FILTERS, { limit: null });
+  const {
+    categories,
+    loading: isLoadingCategories,
+    error: categoriesError,
+  } = useCategories(user?.uid ?? "");
+  const {
+    goals,
+    isLoading: isLoadingGoals,
+    error: goalsError,
+    addGoal,
+    editGoal,
+    removeGoal,
+  } = useSavingsGoals();
+  const {
+    currentBalance,
+    dailySummary,
+    monthlySummary,
+    expensesByCategory,
+    balanceTrend,
+    recentTransactions,
+  } = useDashboardMetrics(transactions, categories);
+
+  const isLoading =
+    isLoadingTransactions || isLoadingCategories || isLoadingGoals;
+  const error = transactionsError || categoriesError || goalsError;
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
@@ -98,27 +91,25 @@ export function DashboardScreen() {
         title="Início"
         subtitle="Acompanhe seu resumo financeiro e suas metas."
       />
+      {isLoading ? <Text variant="muted">Carregando dados...</Text> : null}
+      {error ? <Text className="text-destructive text-sm">{error}</Text> : null}
       <BalanceCard
-        balance={CURRENT_BALANCE}
+        balance={currentBalance}
         visible={valuesVisible}
         onToggleVisible={() => setValuesVisible((visible) => !visible)}
       />
       <FinancialSummaryCard
-        daily={DAILY_SUMMARY}
-        monthly={MONTHLY_SUMMARY}
+        daily={dailySummary}
+        monthly={monthlySummary}
         valuesVisible={valuesVisible}
       />
-      <ExpensesBreakdownCard data={EXPENSES_DATA} />
-      <BalanceTrendCard data={BALANCE_DATA} />
+      <ExpensesBreakdownCard data={expensesByCategory} />
+      <BalanceTrendCard data={balanceTrend} />
       <RecentTransactionsCard
-        transactions={transactions}
+        transactions={recentTransactions}
         onSeeMore={() => router.push("/transactions")}
         onEdit={() => router.push("/transactions")}
-        onDelete={(transaction) =>
-          setTransactions((current) =>
-            current.filter((item) => item.id !== transaction.id),
-          )
-        }
+        onDelete={(transaction) => removeTransaction(transaction.id)}
       />
       <SavingsGoalsCard
         goals={goals}
