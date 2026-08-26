@@ -3,6 +3,7 @@ import { Text } from "@/src/shared/ui/text";
 import type { BalancePoint } from "@features/dashboard/models/dashboard-metrics";
 import { View } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
+import { ChartTooltip } from "./chart-tooltip";
 import { SectionHeading } from "./section-heading";
 
 type BalanceTrendCardProps = {
@@ -59,6 +60,29 @@ export function BalanceTrendCard({
               spacing={38}
               adjustToWidth
               hideDataPoints={false}
+              pointerConfig={{
+                pointerColor: "#2FD89F",
+                radius: 5,
+                pointerStripColor: "#94a3b8",
+                pointerStripWidth: 1,
+                activatePointersOnLongPress: false,
+                activatePointersInstantlyOnTouch: true,
+                pointerVanishDelay: 2500,
+                autoAdjustPointerLabelPosition: true,
+                pointerLabelWidth: 144,
+                pointerLabelHeight: 58,
+                pointerLabelComponent: (items: BalancePoint[]) => {
+                  const point = items[0];
+
+                  return point ? (
+                    <ChartTooltip
+                      label={point.label}
+                      value={point.value}
+                      color="#2FD89F"
+                    />
+                  ) : null;
+                },
+              }}
             />
           </>
         )}

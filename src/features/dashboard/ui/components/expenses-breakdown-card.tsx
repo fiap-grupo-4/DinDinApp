@@ -3,6 +3,7 @@ import { Text } from "@/src/shared/ui/text";
 import type { ExpenseCategory } from "@features/dashboard/models/dashboard-metrics";
 import { View } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
+import { ChartTooltip } from "./chart-tooltip";
 import { SectionHeading } from "./section-heading";
 
 type ExpensesBreakdownCardProps = {
@@ -38,6 +39,20 @@ export function ExpensesBreakdownCard({
             radius={64}
             innerRadius={40}
             innerCircleColor="white"
+            showTooltip
+            tooltipWidth={144}
+            tooltipDuration={2500}
+            tooltipComponent={(index: number) => {
+              const category = data[index];
+
+              return category ? (
+                <ChartTooltip
+                  label={category.label}
+                  value={category.total}
+                  color={category.color}
+                />
+              ) : null;
+            }}
           />
         )}
         <View className="w-full flex-row flex-wrap gap-x-4 gap-y-2.5">
