@@ -1,15 +1,19 @@
 import {
-  collection,
   addDoc,
+  collection,
+  deleteField,
   doc,
+  documentId,
   getDoc,
-  updateDoc,
   deleteDoc,
-  query,
-  where,
-  orderBy,
-  limit,
   getDocs,
+  limit,
+  orderBy,
+  query,
+  startAfter,
+  updateDoc,
+  where,
+  type QueryConstraint,
 } from "firebase/firestore";
 import { db } from "@lib/firebase";
 import {
@@ -25,11 +29,28 @@ import {
 
 const COLLECTION = "transactions";
 
+function omitUndefinedValues<T extends object>(data: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(data).filter(([, value]) => value !== undefined),
+  ) as Partial<T>;
+}
+
+function replaceUndefinedWithDeleteField(
+  data: UpdateTransactionDTO,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(data).map(([key, value]) => [
+      key,
+      value === undefined ? deleteField() : value,
+    ]),
+  );
+}
+
 export class FirebaseTransactionRepository implements ITransactionRepository {
   async create(data: CreateTransactionDTO): Promise<Transaction> {
     const createdAt = new Date().toISOString();
     const ref = await addDoc(collection(db, COLLECTION), {
-      ...data,
+      ...omitUndefinedValues(data),
       createdAt,
     });
     return { uid: ref.id, ...data, createdAt } as Transaction;
@@ -37,7 +58,7 @@ export class FirebaseTransactionRepository implements ITransactionRepository {
 
   async update(id: string, data: UpdateTransactionDTO): Promise<void> {
     const ref = doc(db, COLLECTION, id);
-    await updateDoc(ref, { ...data });
+    await updateDoc(ref, replaceUndefinedWithDeleteField(data));
   }
 
   async delete(id: string): Promise<void> {
@@ -56,22 +77,61 @@ export class FirebaseTransactionRepository implements ITransactionRepository {
     userId: string,
     filters?: TransactionFilters,
   ): Promise<PaginatedResult<Transaction>> {
-    let q = query(
-      collection(db, COLLECTION),
+    const constraints: QueryConstraint[] = [
       where("userId", "==", userId),
-      orderBy("createdAt", "desc"),
-    );
-    const lim = filters?.limit ?? 20;
-    q = query(q, limit(lim));
+    ];
 
-    const snapshot = await getDocs(q);
-    const data = snapshot.docs.map((d) => ({
+    if (filters?.transactionType) {
+      constraints.push(
+        where("transactionType", "==", filters.transactionType),
+      );
+    }
+    if (filters?.categoryId) {
+      constraints.push(where("categoryId", "==", filters.categoryId));
+    }
+    if (filters?.fromDate) {
+      constraints.push(where("createdAt", ">=", filters.fromDate));
+    }
+    if (filters?.toDate) {
+      constraints.push(where("createdAt", "<", filters.toDate));
+    }
+
+    constraints.push(
+      orderBy("createdAt", "desc"),
+      orderBy(documentId(), "desc"),
+    );
+
+    if (filters?.startAfter) {
+      constraints.push(
+        startAfter(filters.startAfter.createdAt, filters.startAfter.id),
+      );
+    }
+
+    const lim = filters?.limit;
+    if (lim !== undefined) {
+      constraints.push(limit(lim + 1));
+    }
+
+    const snapshot = await getDocs(
+      query(collection(db, COLLECTION), ...constraints),
+    );
+    const pageDocs =
+      lim === undefined ? snapshot.docs : snapshot.docs.slice(0, lim);
+    const data = pageDocs.map((d) => ({
       uid: d.id,
       ...(d.data() as Omit<Transaction, "uid">),
     }));
+    const lastDocument = pageDocs.at(-1);
+
     return {
       data,
-      nextCursor: data.length === lim ? data[data.length - 1].uid : null,
+      nextCursor:
+        lim !== undefined && snapshot.docs.length > lim && lastDocument
+          ? {
+              createdAt: lastDocument.get("createdAt") as string,
+              id: lastDocument.id,
+            }
+          : null,
     };
   }
 }

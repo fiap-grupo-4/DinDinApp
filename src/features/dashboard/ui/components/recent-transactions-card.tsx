@@ -3,15 +3,9 @@ import { Card, CardContent, CardHeader } from "@/src/shared/ui/card";
 import { Icon } from "@/src/shared/ui/icon";
 import { Separator } from "@/src/shared/ui/separator";
 import { Text } from "@/src/shared/ui/text";
+import type { RecentTransaction } from "@features/dashboard/models/dashboard-metrics";
 import { ChevronRight, Pencil, Trash2 } from "lucide-react-native";
 import { Alert, View } from "react-native";
-
-export type RecentTransaction = {
-  id: string;
-  title: string;
-  amount: number;
-  date: string;
-};
 
 type RecentTransactionsCardProps = {
   title?: string;
@@ -57,6 +51,12 @@ export function RecentTransactionsCard({
         <Text className="text-base font-semibold">{title}</Text>
       </CardHeader>
       <CardContent className="gap-3">
+        {transactions.length === 0 ? (
+          <Text variant="muted" className="py-4 text-center text-sm">
+            Nenhuma transação cadastrada.
+          </Text>
+        ) : null}
+
         {transactions.map((transaction, index) => (
           <View key={transaction.id}>
             <View className="flex-row items-center justify-between py-1">
@@ -64,8 +64,15 @@ export function RecentTransactionsCard({
                 <Text className="text-sm font-medium">
                   {transaction.title}
                 </Text>
-                <Text className="text-sm font-semibold text-brand-500">
-                  + {formatCurrency(transaction.amount)}
+                <Text
+                  className={
+                    transaction.transactionType === "income"
+                      ? "text-brand-500 text-sm font-semibold"
+                      : "text-danger-500 text-sm font-semibold"
+                  }
+                >
+                  {transaction.transactionType === "income" ? "+ " : "- "}
+                  {formatCurrency(transaction.amount)}
                 </Text>
               </View>
               <View className="items-end gap-1">

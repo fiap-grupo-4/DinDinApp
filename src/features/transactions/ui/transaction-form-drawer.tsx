@@ -27,12 +27,16 @@ import {
 } from "@/src/shared/ui/select";
 import { Text } from "@/src/shared/ui/text";
 import { useAuthState } from "@features/auth/providers/AuthProvider";
-import { useCategories } from "@features/categories/hooks/useCategories";
 import { uploadTransactionReceipt } from "@features/transactions/infra/uploadTransactionReceipt";
 import { Category } from "@domain/categories/entities/Category";
 import { Transaction } from "@domain/transactions/entities/Transaction";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowDownCircle, ArrowUpCircle, Tag, Wallet } from "lucide-react-native";
+import {
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Tag,
+  Wallet,
+} from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { View } from "react-native";
@@ -49,6 +53,9 @@ type TransactionFormDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   transaction?: Transaction | null;
+  categories: Category[];
+  categoriesLoading?: boolean;
+  categoriesError?: string | null;
   onSubmit: (data: TransactionSubmitData) => Promise<void>;
 };
 
@@ -59,25 +66,17 @@ function toFieldValue(valueInCents: number): string {
   });
 }
 
-const MOCK_CATEGORIES: Category[] = [
-  { uid: "mock-alimentacao", userId: "mock", name: "Alimentação", createdAt: "" },
-  { uid: "mock-transporte", userId: "mock", name: "Transporte", createdAt: "" },
-  { uid: "mock-moradia", userId: "mock", name: "Moradia", createdAt: "" },
-  { uid: "mock-lazer", userId: "mock", name: "Lazer", createdAt: "" },
-  { uid: "mock-saude", userId: "mock", name: "Saúde", createdAt: "" },
-];
-
 export function TransactionFormDrawer({
   open,
   onOpenChange,
   transaction,
+  categories,
+  categoriesLoading = false,
+  categoriesError,
   onSubmit,
 }: TransactionFormDrawerProps) {
   const isEditing = !!transaction;
   const { user } = useAuthState();
-  const { categories: fetchedCategories } = useCategories(user?.uid ?? "");
-  const categories =
-    fetchedCategories.length > 0 ? fetchedCategories : MOCK_CATEGORIES;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -208,7 +207,9 @@ export function TransactionFormDrawer({
                 <Icon
                   as={ArrowUpCircle}
                   size={16}
-                  className={transactionType === "income" ? "text-white" : undefined}
+                  className={
+                    transactionType === "income" ? "text-white" : undefined
+                  }
                 />
                 <Text>Entrada</Text>
               </Button>
@@ -225,7 +226,9 @@ export function TransactionFormDrawer({
                 <Icon
                   as={ArrowDownCircle}
                   size={16}
-                  className={transactionType === "outcome" ? "text-white" : undefined}
+                  className={
+                    transactionType === "outcome" ? "text-white" : undefined
+                  }
                 />
                 <Text>Saída</Text>
               </Button>
@@ -270,7 +273,10 @@ export function TransactionFormDrawer({
             <Select
               value={
                 selectedCategory
-                  ? { value: selectedCategory.uid, label: selectedCategory.name }
+                  ? {
+                      value: selectedCategory.uid,
+                      label: selectedCategory.name,
+                    }
                   : undefined
               }
               onValueChange={(option) =>
@@ -278,7 +284,9 @@ export function TransactionFormDrawer({
                   shouldValidate: true,
                 })
               }
-              disabled={isSubmitting}
+              disabled={
+                isSubmitting || categoriesLoading || categories.length === 0
+              }
             >
               <SelectTrigger
                 className={cn(
@@ -286,7 +294,13 @@ export function TransactionFormDrawer({
                   errors.categoryId && "border-destructive",
                 )}
               >
-                <SelectValue placeholder="Selecione uma categoria" />
+                <SelectValue
+                  placeholder={
+                    categoriesLoading
+                      ? "Carregando categorias..."
+                      : "Selecione uma categoria"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {categories.map((category: Category) => (
@@ -303,6 +317,15 @@ export function TransactionFormDrawer({
                 {errors.categoryId.message}
               </Text>
             )}
+            {categoriesError ? (
+              <Text className="text-destructive text-sm">
+                {categoriesError}
+              </Text>
+            ) : !categoriesLoading && categories.length === 0 ? (
+              <Text variant="muted" className="text-sm">
+                Nenhuma categoria cadastrada.
+              </Text>
+            ) : null}
           </View>
 
           <View className="gap-2">
@@ -322,7 +345,9 @@ export function TransactionFormDrawer({
         <DrawerFooter>
           <Button
             onPress={handleSubmit(handleFormSubmit)}
-            disabled={isSubmitting}
+            disabled={
+              isSubmitting || categoriesLoading || categories.length === 0
+            }
             className="bg-brand-600 active:bg-brand-700"
           >
             <Text>{isSubmitting ? "Salvando..." : "Salvar"}</Text>

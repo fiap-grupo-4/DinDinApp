@@ -11,12 +11,17 @@ export interface TransactionFilters {
   toDate?: string;
   search?: string;
   limit?: number;
-  startAfter?: string;
+  startAfter?: TransactionCursor;
+}
+
+export interface TransactionCursor {
+  createdAt: string;
+  id: string;
 }
 
 export interface PaginatedResult<T> {
   data: T[];
-  nextCursor?: string | null;
+  nextCursor?: TransactionCursor | null;
 }
 
 export interface ITransactionRepository {

@@ -16,7 +16,15 @@ export function useCategories(userId: string) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!userId) {
+      setCategories([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
+    setError(null);
     listCategories(repository, userId)
       .then(setCategories)
       .catch((err) =>
