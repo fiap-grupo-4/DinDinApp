@@ -15,7 +15,7 @@ import {
 } from "@domain/transactions/use-cases/transactionUseCases";
 import { useAuthState } from "@features/auth/providers/AuthProvider";
 import { useTransactionRepository } from "@features/transactions/providers/TransactionRepositoryProvider";
-import { TransactionFiltersValue } from "@features/transactions/ui/transaction-filters-drawer";
+import type { TransactionFiltersValue } from "@features/transactions/models/transaction-filters";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const LIST_LIMIT = 25;

@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader } from "@/src/shared/ui/card";
 import { Text } from "@/src/shared/ui/text";
 import type { ExpenseCategory } from "@features/dashboard/models/dashboard-metrics";
+import { memo, useMemo } from "react";
 import { View } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 import { ChartTooltip } from "./chart-tooltip";
@@ -11,16 +12,23 @@ type ExpensesBreakdownCardProps = {
   data: ExpenseCategory[];
 };
 
-export function ExpensesBreakdownCard({
+export const ExpensesBreakdownCard = memo(function ExpensesBreakdownCard({
   title = "Principais gastos",
   data,
 }: ExpensesBreakdownCardProps) {
-  const totalSpent = data.reduce((sum, category) => sum + category.total, 0);
+  const totalSpent = useMemo(
+    () => data.reduce((sum, category) => sum + category.total, 0),
+    [data],
+  );
 
-  const pieData = data.map((category) => ({
-    value: category.total,
-    color: category.color,
-  }));
+  const pieData = useMemo(
+    () =>
+      data.map((category) => ({
+        value: category.total,
+        color: category.color,
+      })),
+    [data],
+  );
 
   return (
     <Card>
@@ -85,4 +93,4 @@ export function ExpensesBreakdownCard({
       </CardContent>
     </Card>
   );
-}
+});

@@ -5,6 +5,7 @@ import { Separator } from "@/src/shared/ui/separator";
 import { Text } from "@/src/shared/ui/text";
 import type { RecentTransaction } from "@features/dashboard/models/dashboard-metrics";
 import { ChevronRight, Pencil, Trash2 } from "lucide-react-native";
+import { memo } from "react";
 import { Alert, View } from "react-native";
 
 type RecentTransactionsCardProps = {
@@ -22,7 +23,7 @@ function formatCurrency(value: number) {
   });
 }
 
-export function RecentTransactionsCard({
+export const RecentTransactionsCard = memo(function RecentTransactionsCard({
   title = "Transações Recentes",
   transactions,
   onSeeMore,
@@ -115,4 +116,4 @@ export function RecentTransactionsCard({
       </CardContent>
     </Card>
   );
-}
+});

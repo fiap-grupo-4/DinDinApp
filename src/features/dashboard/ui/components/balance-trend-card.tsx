@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader } from "@/src/shared/ui/card";
 import { Text } from "@/src/shared/ui/text";
 import type { BalancePoint } from "@features/dashboard/models/dashboard-metrics";
+import { memo, useMemo } from "react";
 import { View } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
 import { ChartTooltip } from "./chart-tooltip";
@@ -11,10 +12,19 @@ type BalanceTrendCardProps = {
   data: BalancePoint[];
 };
 
-export function BalanceTrendCard({
+export const BalanceTrendCard = memo(function BalanceTrendCard({
   title = "Acompanhamento de Saldo",
   data,
 }: BalanceTrendCardProps) {
+  const chartData = useMemo(
+    () =>
+      data.map((point) => ({
+        value: point.value,
+        label: point.label,
+      })),
+    [data],
+  );
+
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between">
@@ -34,10 +44,7 @@ export function BalanceTrendCard({
               </Text>
             </View>
             <LineChart
-              data={data.map((point) => ({
-                value: point.value,
-                label: point.label,
-              }))}
+              data={chartData}
               areaChart
               curved
               color="#2FD89F"
@@ -89,4 +96,4 @@ export function BalanceTrendCard({
       </CardContent>
     </Card>
   );
-}
+});

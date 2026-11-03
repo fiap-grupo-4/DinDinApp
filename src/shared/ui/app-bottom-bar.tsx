@@ -1,3 +1,4 @@
+import { runWhenIdle } from "@/src/lib/lazy";
 import { cn } from "@/src/lib/utils";
 import { Icon } from "@/src/shared/ui/icon";
 import { Text } from "@/src/shared/ui/text";
@@ -8,6 +9,7 @@ import {
   UserRound,
   type LucideIcon,
 } from "lucide-react-native";
+import { useEffect } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 
 const TABS = [
@@ -16,24 +18,28 @@ const TABS = [
     href: "/dashboard",
     label: "Início",
     icon: Home,
+    prefetch: false,
   },
   {
     key: "transactions",
     href: "/transactions",
     label: "Transações",
     icon: ArrowLeftRight,
+    prefetch: true,
   },
   {
     key: "account",
     href: "/account",
     label: "Conta",
     icon: UserRound,
+    prefetch: true,
   },
 ] as const satisfies ReadonlyArray<{
   key: string;
   href: string;
   label: string;
   icon: LucideIcon;
+  prefetch: boolean;
 }>;
 
 function getActiveTab(pathname: string) {
@@ -50,6 +56,14 @@ export function AppBottomBar() {
   const pathname = usePathname();
   const router = useRouter();
   const activeTab = getActiveTab(pathname);
+
+  useEffect(() => {
+    return runWhenIdle(() => {
+      for (const tab of TABS) {
+        if (tab.prefetch && tab.key !== activeTab) router.prefetch(tab.href);
+      }
+    });
+  }, [activeTab, router]);
 
   const handleNavigate = (href: (typeof TABS)[number]["href"]) => {
     if (pathname === href) return;

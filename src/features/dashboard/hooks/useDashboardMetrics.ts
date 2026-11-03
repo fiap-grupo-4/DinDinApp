@@ -1,6 +1,10 @@
 import { fromCents } from "@/src/lib/currency";
 import { Category } from "@domain/categories/entities/Category";
 import { Transaction } from "@domain/transactions/entities/Transaction";
+import {
+  computeTransactionMetrics,
+  type SummaryInCents,
+} from "@domain/transactions/services/transactionMetrics";
 import { useMemo } from "react";
 import type {
   BalancePoint,
@@ -21,176 +25,77 @@ const EXPENSE_COLORS = [
 const RECENT_TRANSACTIONS_LIMIT = 5;
 const BALANCE_MONTHS = 8;
 
-function toValidDate(value: string): Date | null {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function signedValueInCents(transaction: Transaction): number {
-  return transaction.transactionType === "income"
-    ? transaction.valueInCents
-    : -transaction.valueInCents;
-}
-
-function isSameDay(left: Date, right: Date): boolean {
-  return (
-    left.getFullYear() === right.getFullYear() &&
-    left.getMonth() === right.getMonth() &&
-    left.getDate() === right.getDate()
-  );
-}
-
-function isSameMonth(left: Date, right: Date): boolean {
-  return (
-    left.getFullYear() === right.getFullYear() &&
-    left.getMonth() === right.getMonth()
-  );
-}
-
-function summarize(
-  transactions: Transaction[],
-  predicate: (date: Date) => boolean,
-): FinancialSummary {
-  const totals = transactions.reduce(
-    (summary, transaction) => {
-      const date = toValidDate(transaction.createdAt);
-      if (!date || !predicate(date)) return summary;
-
-      if (transaction.transactionType === "income") {
-        summary.income += transaction.valueInCents;
-      } else {
-        summary.expense += transaction.valueInCents;
-      }
-
-      return summary;
-    },
-    { income: 0, expense: 0 },
-  );
-
+function toFinancialSummary(summary: SummaryInCents): FinancialSummary {
   return {
-    income: fromCents(totals.income),
-    expense: fromCents(totals.expense),
+    income: fromCents(summary.incomeInCents),
+    expense: fromCents(summary.expenseInCents),
   };
 }
 
-function buildExpensesByCategory(
-  transactions: Transaction[],
-  categories: Category[],
-  now: Date,
-): ExpenseCategory[] {
-  const categoryNames = new Map(
-    categories.map((category) => [category.uid, category.name]),
-  );
-  const totals = new Map<string, number>();
-
-  for (const transaction of transactions) {
-    const date = toValidDate(transaction.createdAt);
-    if (
-      transaction.transactionType !== "outcome" ||
-      !date ||
-      !isSameMonth(date, now)
-    ) {
-      continue;
-    }
-
-    const categoryId = transaction.categoryId || "other";
-    totals.set(
-      categoryId,
-      (totals.get(categoryId) ?? 0) + transaction.valueInCents,
-    );
-  }
-
-  return [...totals.entries()]
-    .sort((left, right) => right[1] - left[1])
-    .map(([categoryId, totalInCents], index) => ({
-      id: categoryId,
-      label: categoryNames.get(categoryId) ?? "Outros",
-      total: fromCents(totalInCents),
-      color: EXPENSE_COLORS[index % EXPENSE_COLORS.length],
-    }));
+function formatMonthLabel(month: Date): string {
+  const label = month
+    .toLocaleDateString("pt-BR", { month: "short" })
+    .replace(".", "");
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-function buildBalanceTrend(
-  transactions: Transaction[],
-  now: Date,
-): BalancePoint[] {
-  const datedTransactions = transactions.flatMap((transaction) => {
-    const date = toValidDate(transaction.createdAt);
-    return date ? [{ transaction, date }] : [];
-  });
-
-  if (datedTransactions.length === 0) return [];
-
-  const months = Array.from({ length: BALANCE_MONTHS }, (_, index) => {
-    const offset = index - (BALANCE_MONTHS - 1);
-    return new Date(now.getFullYear(), now.getMonth() + offset, 1);
-  });
-
-  let balanceInCents = datedTransactions.reduce((total, item) => {
-    if (item.date >= months[0]) return total;
-    return total + signedValueInCents(item.transaction);
-  }, 0);
-
-  return months.map((month) => {
-    balanceInCents += datedTransactions.reduce((total, item) => {
-      if (!isSameMonth(item.date, month)) return total;
-      return total + signedValueInCents(item.transaction);
-    }, 0);
-
-    const label = month
-      .toLocaleDateString("pt-BR", { month: "short" })
-      .replace(".", "");
-
-    return {
-      label: label.charAt(0).toUpperCase() + label.slice(1),
-      value: fromCents(balanceInCents),
-    };
-  });
+function formatDate(isoDate: string): string {
+  const date = new Date(isoDate);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("pt-BR");
 }
 
 export function useDashboardMetrics(
   transactions: Transaction[],
   categories: Category[],
 ) {
-  return useMemo(() => {
-    const now = new Date();
-    const currentBalance = fromCents(
-      transactions.reduce(
-        (total, transaction) => total + signedValueInCents(transaction),
-        0,
-      ),
-    );
+  const metrics = useMemo(
+    () =>
+      computeTransactionMetrics(transactions, {
+        balanceMonths: BALANCE_MONTHS,
+        recentLimit: RECENT_TRANSACTIONS_LIMIT,
+      }),
+    [transactions],
+  );
 
-    const recentTransactions: RecentTransaction[] = [...transactions]
-      .sort((left, right) => {
-        const leftTime = toValidDate(left.createdAt)?.getTime() ?? 0;
-        const rightTime = toValidDate(right.createdAt)?.getTime() ?? 0;
-        return rightTime - leftTime;
-      })
-      .slice(0, RECENT_TRANSACTIONS_LIMIT)
-      .map((transaction) => ({
+  const transactionMetrics = useMemo(() => {
+    const balanceTrend: BalancePoint[] = metrics.balanceTrend.map((point) => ({
+      label: formatMonthLabel(point.month),
+      value: fromCents(point.balanceInCents),
+    }));
+
+    const recentTransactions: RecentTransaction[] =
+      metrics.recentTransactions.map((transaction) => ({
         id: transaction.uid,
         title: transaction.description || "Transação",
         amount: fromCents(transaction.valueInCents),
         transactionType: transaction.transactionType,
-        date:
-          toValidDate(transaction.createdAt)?.toLocaleDateString("pt-BR") ??
-          "",
+        date: formatDate(transaction.createdAt),
       }));
 
     return {
-      currentBalance,
-      dailySummary: summarize(transactions, (date) => isSameDay(date, now)),
-      monthlySummary: summarize(transactions, (date) =>
-        isSameMonth(date, now),
-      ),
-      expensesByCategory: buildExpensesByCategory(
-        transactions,
-        categories,
-        now,
-      ),
-      balanceTrend: buildBalanceTrend(transactions, now),
+      currentBalance: fromCents(metrics.balanceInCents),
+      dailySummary: toFinancialSummary(metrics.daily),
+      monthlySummary: toFinancialSummary(metrics.monthly),
+      balanceTrend,
       recentTransactions,
     };
-  }, [transactions, categories]);
+  }, [metrics]);
+
+  const expensesByCategory = useMemo<ExpenseCategory[]>(() => {
+    const categoryNames = new Map(
+      categories.map((category) => [category.uid, category.name]),
+    );
+
+    return metrics.monthlyExpensesByCategory.map((expense, index) => ({
+      id: expense.categoryId,
+      label: categoryNames.get(expense.categoryId) ?? "Outros",
+      total: fromCents(expense.totalInCents),
+      color: EXPENSE_COLORS[index % EXPENSE_COLORS.length],
+    }));
+  }, [metrics, categories]);
+
+  return useMemo(
+    () => ({ ...transactionMetrics, expensesByCategory }),
+    [transactionMetrics, expensesByCategory],
+  );
 }

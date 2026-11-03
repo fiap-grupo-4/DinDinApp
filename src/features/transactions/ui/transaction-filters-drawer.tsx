@@ -24,12 +24,9 @@ import { Calendar, Search } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Platform, Pressable, View } from "react-native";
 
-export type TransactionFiltersValue = {
-  search: string;
-  transactionType?: "income" | "outcome";
-  categoryId?: string;
-  date?: string;
-};
+import type { TransactionFiltersValue } from "@features/transactions/models/transaction-filters";
+
+export type { TransactionFiltersValue };
 
 const TYPE_OPTIONS = [
   { value: "income", label: "Entrada" },
