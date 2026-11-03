@@ -85,5 +85,212 @@
 			"cssModules": false,
 			"allowWrongLineComments": true
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": [
+				"src/domain/**"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"react*",
+											"react*/**",
+											"@react-native*/**",
+											"expo*",
+											"expo*/**",
+											"firebase",
+											"firebase/**",
+											"@rn-primitives/**",
+											"lucide-react-native",
+											"nativewind",
+											"zod",
+											"@application/**",
+											"@/src/application/**",
+											"**/application/**",
+											"@infra/**",
+											"@/src/infrastructure/**",
+											"**/infrastructure/**",
+											"@presentation/**",
+											"@/src/presentation/**",
+											"**/presentation/**",
+											"@main/**",
+											"@/src/main/**",
+											"**/main/**",
+											"@lib/**",
+											"@/src/lib/**",
+											"**/lib/**",
+											"@shared/**",
+											"@/src/shared/**",
+											"**/shared/ui/**",
+											"@/src/app/**"
+										],
+										"message": "domain \u00e9 TypeScript puro: n\u00e3o importa framework, Firebase nem outras camadas."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"src/application/**"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"react*",
+											"react*/**",
+											"@react-native*/**",
+											"expo*",
+											"expo*/**",
+											"firebase",
+											"firebase/**",
+											"@rn-primitives/**",
+											"lucide-react-native",
+											"nativewind",
+											"zod",
+											"@infra/**",
+											"@/src/infrastructure/**",
+											"**/infrastructure/**",
+											"@presentation/**",
+											"@/src/presentation/**",
+											"**/presentation/**",
+											"@main/**",
+											"@/src/main/**",
+											"**/main/**",
+											"@lib/**",
+											"@/src/lib/**",
+											"**/lib/**",
+											"@shared/**",
+											"@/src/shared/**",
+											"**/shared/ui/**",
+											"@/src/app/**"
+										],
+										"message": "application s\u00f3 depende de domain."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"src/infrastructure/**"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"react",
+											"react/**",
+											"@application/**",
+											"@/src/application/**",
+											"**/application/**",
+											"@presentation/**",
+											"@/src/presentation/**",
+											"**/presentation/**",
+											"@main/**",
+											"@/src/main/**",
+											"**/main/**",
+											"@lib/**",
+											"@/src/lib/**",
+											"**/lib/**",
+											"@shared/**",
+											"@/src/shared/**",
+											"**/shared/ui/**",
+											"@/src/app/**"
+										],
+										"message": "infrastructure s\u00f3 depende de domain e do SDK externo."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"src/presentation/**",
+				"src/shared/**",
+				"src/lib/**"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@infra/**",
+											"@/src/infrastructure/**",
+											"**/infrastructure/**",
+											"firebase",
+											"firebase/**",
+											"@main/**",
+											"@/src/main/**",
+											"**/main/**"
+										],
+										"message": "presentation n\u00e3o conhece a infraestrutura: use useRepositories()."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"src/app/**"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@infra/**",
+											"@/src/infrastructure/**",
+											"**/infrastructure/**",
+											"firebase",
+											"firebase/**"
+										],
+										"message": "As rotas n\u00e3o importam a infraestrutura: a composi\u00e7\u00e3o fica em src/main."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		}
+	]
 }
