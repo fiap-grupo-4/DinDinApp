@@ -1,4 +1,4 @@
-import { ValidationError } from "@domain/shared/errors";
+import { NotFoundError, ValidationError } from "@domain/shared/errors";
 import { ICategoryRepository } from "@domain/categories/repositories/ICategoryRepository";
 import {
   Category,
@@ -16,9 +16,15 @@ export async function listCategories(
 
 export async function getCategory(
   repository: ICategoryRepository,
+  userId: string,
   categoryId: string,
-): Promise<Category | null> {
-  return repository.getById(categoryId);
+): Promise<Category> {
+  requireUserId(userId);
+  const category = await repository.getById(categoryId);
+  if (!category || category.userId !== userId) {
+    throw new NotFoundError("Categoria não encontrada.");
+  }
+  return category;
 }
 
 export async function createCategory(

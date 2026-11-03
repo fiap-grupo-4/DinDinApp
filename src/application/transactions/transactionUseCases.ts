@@ -19,10 +19,11 @@ export type TransactionUseCaseDeps = {
   categories: ICategoryRepository;
 };
 
-const VALUE_MESSAGE = "O valor deve ser maior que zero.";
-
 function validateValue(value: number): void {
-  requirePositiveInteger(value, VALUE_MESSAGE);
+  if (!Number.isSafeInteger(value)) {
+    throw new ValidationError("Informe um valor válido.");
+  }
+  requirePositiveInteger(value, "O valor deve ser maior que zero.");
 }
 
 function validateType(type: TransactionType): void {
@@ -113,7 +114,7 @@ export async function updateTransaction(
   userId: string,
   transactionId: string,
   data: UpdateTransactionDTO,
-): Promise<void> {
+): Promise<UpdateTransactionDTO> {
   await loadOwned(deps, userId, transactionId);
 
   // Protege contra userId vindo em runtime.
@@ -140,6 +141,7 @@ export async function updateTransaction(
   }
 
   await deps.transactions.update(transactionId, normalized);
+  return normalized;
 }
 
 export async function deleteTransaction(

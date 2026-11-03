@@ -11,6 +11,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { db } from "@infra/firebase";
+import { isPermissionDenied } from "@infra/firebase/errors";
 import { ISavingsGoalRepository } from "@domain/savings/repositories/ISavingsGoalRepository";
 import {
   SavingsGoal,
@@ -37,9 +38,14 @@ export class FirebaseSavingsGoalRepository implements ISavingsGoalRepository {
 
   async getById(id: string): Promise<SavingsGoal | null> {
     const ref = doc(db, COLLECTION, id);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return null;
-    return { uid: snap.id, ...(snap.data() as Omit<SavingsGoal, "uid">) };
+    try {
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return null;
+      return { uid: snap.id, ...(snap.data() as Omit<SavingsGoal, "uid">) };
+    } catch (error) {
+      if (isPermissionDenied(error)) return null;
+      throw error;
+    }
   }
 
   async delete(id: string): Promise<void> {

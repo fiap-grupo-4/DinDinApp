@@ -8,6 +8,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { db } from "@infra/firebase";
+import { isPermissionDenied } from "@infra/firebase/errors";
 import { ICategoryRepository } from "@domain/categories/repositories/ICategoryRepository";
 import {
   Category,
@@ -28,9 +29,14 @@ export class FirebaseCategoryRepository implements ICategoryRepository {
 
   async getById(id: string): Promise<Category | null> {
     const ref = doc(db, COLLECTION, id);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return null;
-    return { uid: snap.id, ...(snap.data() as Omit<Category, "uid">) };
+    try {
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return null;
+      return { uid: snap.id, ...(snap.data() as Omit<Category, "uid">) };
+    } catch (error) {
+      if (isPermissionDenied(error)) return null;
+      throw error;
+    }
   }
 
   async listForUser(userId: string): Promise<Category[]> {

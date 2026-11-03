@@ -132,6 +132,12 @@ describe("createTransaction", () => {
     ).rejects.toThrow("O valor deve ser maior que zero.");
   });
 
+  it("mensagem de valor acima do inteiro seguro", async () => {
+    await expect(
+      createTransaction(deps, { ...base, valueInCents: 1e16 }),
+    ).rejects.toThrow("Informe um valor válido.");
+  });
+
   it("rejeita tipo inválido", async () => {
     await expect(
       createTransaction(deps, {
@@ -163,6 +169,13 @@ describe("createTransaction", () => {
 });
 
 describe("updateTransaction", () => {
+  it("devolve o patch normalizado para o estado local", async () => {
+    const patch = await updateTransaction(deps, "u1", "tx-own", {
+      description: "  Nova  ",
+    });
+    expect(patch).toEqual({ description: "Nova" });
+  });
+
   it("atualiza só os campos presentes, normalizados", async () => {
     await updateTransaction(deps, "u1", "tx-own", {
       valueInCents: 500,

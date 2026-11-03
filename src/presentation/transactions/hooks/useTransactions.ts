@@ -198,11 +198,16 @@ export function useTransactions(
   const editTransaction = useCallback(
     async (transactionId: string, data: UpdateTransactionDTO) => {
       if (!user) return;
-      await updateTransaction(repository, user.uid, transactionId, data);
+      const patch = await updateTransaction(
+        repository,
+        user.uid,
+        transactionId,
+        data,
+      );
       setTransactions((current) =>
         current.map((transaction) =>
           transaction.uid === transactionId
-            ? { ...transaction, ...data }
+            ? { ...transaction, ...patch }
             : transaction,
         ),
       );

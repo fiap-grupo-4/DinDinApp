@@ -1,4 +1,4 @@
-import { ValidationError } from "@domain/shared/errors";
+import { NotFoundError, ValidationError } from "@domain/shared/errors";
 import { InMemoryCategoryRepository } from "@/src/test/fakes/InMemoryCategoryRepository";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
@@ -51,8 +51,16 @@ describe("listCategories", () => {
 });
 
 describe("getCategory", () => {
-  it("retorna por id ou null", async () => {
-    expect((await getCategory(repo, "c1"))?.name).toBe("Comida");
-    expect(await getCategory(repo, "nope")).toBeNull();
+  it("retorna a categoria do usuário", async () => {
+    expect((await getCategory(repo, "u1", "c1")).name).toBe("Comida");
+  });
+
+  it("NotFoundError para inexistente ou alheia", async () => {
+    await expect(getCategory(repo, "u1", "nope")).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    await expect(getCategory(repo, "u2", "c1")).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
   });
 });

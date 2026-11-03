@@ -1,5 +1,6 @@
 import { toast } from "@/src/lib/sonner";
 import { CreateUserRequest } from "@domain/auth/entities/User";
+import { DomainError } from "@domain/shared/errors";
 import {
   forgotPassword,
   register,
@@ -47,6 +48,8 @@ function getAuthErrorMessage(
   fallback: string,
   overrides?: Record<string, string>,
 ) {
+  if (error instanceof DomainError) return error.message;
+
   const code = getErrorCode(error);
 
   if (!code) return fallback;

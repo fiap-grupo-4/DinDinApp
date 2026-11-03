@@ -70,7 +70,7 @@ export async function updateSavingsGoal(
   userId: string,
   savingsGoalId: string,
   data: UpdateSavingsGoalDTO,
-): Promise<void> {
+): Promise<UpdateSavingsGoalDTO> {
   const current = await loadOwned(repository, userId, savingsGoalId);
 
   // Protege contra userId vindo em runtime.
@@ -88,6 +88,7 @@ export async function updateSavingsGoal(
   });
 
   await repository.update(savingsGoalId, normalized);
+  return normalized;
 }
 
 export async function deleteSavingsGoal(

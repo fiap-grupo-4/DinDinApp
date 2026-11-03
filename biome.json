@@ -129,13 +129,16 @@
 											"@shared/**",
 											"@/src/shared/**",
 											"**/shared/ui/**",
-											"@/src/app/**"
+											"@/src/app/**",
+											"zod/**",
+											"**/app/**"
 										],
 										"message": "domain \u00e9 TypeScript puro: n\u00e3o importa framework, Firebase nem outras camadas."
 									}
 								]
 							}
-						}
+						},
+						"noCommonJs": "error"
 					}
 				}
 			}
@@ -179,13 +182,16 @@
 											"@shared/**",
 											"@/src/shared/**",
 											"**/shared/ui/**",
-											"@/src/app/**"
+											"@/src/app/**",
+											"zod/**",
+											"**/app/**"
 										],
 										"message": "application s\u00f3 depende de domain."
 									}
 								]
 							}
-						}
+						},
+						"noCommonJs": "error"
 					}
 				}
 			}

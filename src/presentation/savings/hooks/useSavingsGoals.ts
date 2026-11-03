@@ -58,10 +58,15 @@ export function useSavingsGoals() {
   const editGoal = useCallback(
     async (goalId: string, data: UpdateSavingsGoalDTO) => {
       if (!user) return;
-      await updateSavingsGoal(repository, user.uid, goalId, data);
+      const patch = await updateSavingsGoal(
+        repository,
+        user.uid,
+        goalId,
+        data,
+      );
       setGoals((current) =>
         current.map((goal) =>
-          goal.uid === goalId ? { ...goal, ...data } : goal,
+          goal.uid === goalId ? { ...goal, ...patch } : goal,
         ),
       );
     },

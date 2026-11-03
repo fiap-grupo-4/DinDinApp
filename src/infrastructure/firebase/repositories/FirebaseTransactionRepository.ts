@@ -16,6 +16,7 @@ import {
   type QueryConstraint,
 } from "firebase/firestore";
 import { db } from "@infra/firebase";
+import { isPermissionDenied } from "@infra/firebase/errors";
 import {
   ITransactionRepository,
   PaginatedResult,
@@ -68,9 +69,14 @@ export class FirebaseTransactionRepository implements ITransactionRepository {
 
   async getById(id: string): Promise<Transaction | null> {
     const ref = doc(db, COLLECTION, id);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return null;
-    return { uid: snap.id, ...(snap.data() as Omit<Transaction, "uid">) };
+    try {
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return null;
+      return { uid: snap.id, ...(snap.data() as Omit<Transaction, "uid">) };
+    } catch (error) {
+      if (isPermissionDenied(error)) return null;
+      throw error;
+    }
   }
 
   async listForUser(
