@@ -1,29 +1,30 @@
+import { toast } from "@/src/lib/sonner";
 import { Button } from "@/src/shared/ui/button";
 import { Icon } from "@/src/shared/ui/icon";
 import { ScreenHeader } from "@/src/shared/ui/screen-header";
 import { Text } from "@/src/shared/ui/text";
 import { Transaction } from "@domain/transactions/entities/Transaction";
-import { useAuthState } from "@features/auth/providers/AuthProvider";
-import { useCategories } from "@features/categories/hooks/useCategories";
-import { useTransactionCategories } from "@features/transactions/hooks/useTransactionCategories";
-import { useTransactions } from "@features/transactions/hooks/useTransactions";
 import {
-  TransactionFiltersDrawer,
+  EMPTY_TRANSACTION_FILTERS,
   TransactionFiltersValue,
-} from "@features/transactions/ui/transaction-filters-drawer";
+} from "@domain/transactions/entities/TransactionFilters";
+import { countActiveFilters } from "@domain/transactions/services/transaction-filters";
+import { useAuthState } from "@presentation/auth/providers/AuthProvider";
+import { useCategories } from "@presentation/categories/hooks/useCategories";
+import { useTransactionCategories } from "@presentation/transactions/hooks/useTransactionCategories";
+import { useTransactions } from "@presentation/transactions/hooks/useTransactions";
+import { TransactionFiltersDrawer } from "@presentation/transactions/ui/transaction-filters-drawer";
 import {
   TransactionFormDrawer,
   TransactionSubmitData,
-} from "@features/transactions/ui/transaction-form-drawer";
+} from "@presentation/transactions/ui/transaction-form-drawer";
 import {
   TransactionListItem,
   TransactionWithCategory,
-} from "@features/transactions/ui/transaction-list-item";
+} from "@presentation/transactions/ui/transaction-list-item";
 import { ListFilter, Plus } from "lucide-react-native";
 import React, { useState } from "react";
 import { ActivityIndicator, Alert, FlatList, View } from "react-native";
-
-const EMPTY_FILTERS: TransactionFiltersValue = { search: "" };
 
 export const TransactionsScreen: React.FC = () => {
   const { user } = useAuthState();
@@ -33,7 +34,9 @@ export const TransactionsScreen: React.FC = () => {
     error: categoriesError,
   } = useCategories(user?.uid ?? "");
 
-  const [filters, setFilters] = useState<TransactionFiltersValue>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<TransactionFiltersValue>(
+    EMPTY_TRANSACTION_FILTERS,
+  );
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] =
@@ -57,12 +60,7 @@ export const TransactionsScreen: React.FC = () => {
     categories,
   );
 
-  const activeFilterCount = [
-    filters.search.trim().length > 0,
-    !!filters.transactionType,
-    !!filters.categoryId,
-    !!filters.date,
-  ].filter(Boolean).length;
+  const activeFilterCount = countActiveFilters(filters);
 
   function handleAdd() {
     setEditingTransaction(null);
@@ -83,7 +81,15 @@ export const TransactionsScreen: React.FC = () => {
         {
           text: "Excluir",
           style: "destructive",
-          onPress: () => removeTransaction(transaction.uid),
+          onPress: () => {
+            removeTransaction(transaction.uid).catch((err) =>
+              toast.error(
+                err instanceof Error
+                  ? err.message
+                  : "Não foi possível excluir a transação.",
+              ),
+            );
+          },
         },
       ],
     );

@@ -1,14 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter, useSegments } from "expo-router";
-import { AuthState } from "@/src/domain/auth/repositories/IAuthRepository";
-import { useAuthRepository } from "@features/auth/providers/AuthRepositoryProvider";
+import { AuthState } from "@domain/auth/repositories/IAuthRepository";
+import { useRepositories } from "@presentation/providers/RepositoriesContext";
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const repository = useAuthRepository();
+  const { auth: repository } = useRepositories();
   const [state, setState] = useState<AuthState>({ user: null, loading: true });
   const router = useRouter();
   const segments = useSegments();

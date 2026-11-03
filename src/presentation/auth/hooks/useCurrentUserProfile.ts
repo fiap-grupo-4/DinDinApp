@@ -1,7 +1,7 @@
-import { useAuthState } from "@/src/features/auth/providers/AuthProvider";
+import { useAuthState } from "@presentation/auth/providers/AuthProvider";
 import { User } from "@domain/auth/entities/User";
-import { getProfile } from "@domain/auth/use-cases/authUseCases";
-import { useAuthRepository } from "@features/auth/providers/AuthRepositoryProvider";
+import { getProfile } from "@application/auth/authUseCases";
+import { useRepositories } from "@presentation/providers/RepositoriesContext";
 import { useEffect, useState } from "react";
 
 function toFallbackProfile(
@@ -20,7 +20,7 @@ function toFallbackProfile(
 
 export function useCurrentUserProfile() {
   const { user } = useAuthState();
-  const repository = useAuthRepository();
+  const { auth: repository } = useRepositories();
   const uid = user?.uid;
   const email = user?.email ?? "";
   const displayName = user?.displayName ?? null;

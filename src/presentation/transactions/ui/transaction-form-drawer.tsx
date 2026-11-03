@@ -26,8 +26,8 @@ import {
   SelectValue,
 } from "@/src/shared/ui/select";
 import { Text } from "@/src/shared/ui/text";
-import { useAuthState } from "@features/auth/providers/AuthProvider";
-import { uploadTransactionReceipt } from "@features/transactions/infra/uploadTransactionReceipt";
+import { useAuthState } from "@presentation/auth/providers/AuthProvider";
+import { useRepositories } from "@presentation/providers/RepositoriesContext";
 import { Category } from "@domain/categories/entities/Category";
 import { Transaction } from "@domain/transactions/entities/Transaction";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -77,6 +77,7 @@ export function TransactionFormDrawer({
 }: TransactionFormDrawerProps) {
   const isEditing = !!transaction;
   const { user } = useAuthState();
+  const { receiptStorage } = useRepositories();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -125,7 +126,7 @@ export function TransactionFormDrawer({
     try {
       let receipt = transaction?.receipt;
       if (receiptUri && receiptUri !== transaction?.receipt) {
-        receipt = await uploadTransactionReceipt(user.uid, receiptUri);
+        receipt = await receiptStorage.upload(user.uid, receiptUri);
       } else if (!receiptUri) {
         receipt = undefined;
       }

@@ -10,8 +10,8 @@ import { ScreenHeader } from "@/src/shared/ui/screen-header";
 import { Separator } from "@/src/shared/ui/separator";
 import { Skeleton } from "@/src/shared/ui/skeleton";
 import { Text } from "@/src/shared/ui/text";
-import { useAuth } from "@features/auth/hooks/useAuth";
-import { useCurrentUserProfile } from "@features/auth/hooks/useCurrentUserProfile";
+import { useAuth } from "@presentation/auth/hooks/useAuth";
+import { useCurrentUserProfile } from "@presentation/auth/hooks/useCurrentUserProfile";
 import { ScrollView, View } from "react-native";
 
 function getInitials(fullName: string, email: string) {

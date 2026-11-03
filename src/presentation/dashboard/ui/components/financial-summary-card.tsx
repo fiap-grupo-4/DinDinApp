@@ -9,7 +9,7 @@ import { Icon } from "@/src/shared/ui/icon";
 import { Tabs, TabsList, TabsTrigger } from "@/src/shared/ui/tabs";
 import { Text } from "@/src/shared/ui/text";
 import { cn } from "@/src/lib/utils";
-import type { FinancialSummary } from "@features/dashboard/models/dashboard-metrics";
+import type { FinancialSummary } from "@presentation/dashboard/models/dashboard-metrics";
 import { useRouter } from "expo-router";
 import { Plus } from "lucide-react-native";
 import * as React from "react";

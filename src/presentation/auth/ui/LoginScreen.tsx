@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "expo-router";
 import { Lock, Mail } from "lucide-react-native";
 import { Controller, useForm } from "react-hook-form";
-import { useAuth } from "@features/auth/hooks/useAuth";
+import { useAuth } from "@presentation/auth/hooks/useAuth";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 
 export default function LoginScreen() {

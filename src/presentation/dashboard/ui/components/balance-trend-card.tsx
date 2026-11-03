@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader } from "@/src/shared/ui/card";
 import { Text } from "@/src/shared/ui/text";
-import type { BalancePoint } from "@features/dashboard/models/dashboard-metrics";
+import type { BalancePoint } from "@presentation/dashboard/models/dashboard-metrics";
 import { View } from "react-native";
 import { LineChart } from "react-native-gifted-charts";
 import { ChartTooltip } from "./chart-tooltip";

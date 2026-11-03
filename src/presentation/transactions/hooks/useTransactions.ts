@@ -3,6 +3,7 @@ import {
   Transaction,
   UpdateTransactionDTO,
 } from "@domain/transactions/entities/Transaction";
+import type { TransactionFiltersValue } from "@domain/transactions/entities/TransactionFilters";
 import type {
   TransactionCursor,
   TransactionFilters,
@@ -12,10 +13,13 @@ import {
   deleteTransaction,
   listTransactions,
   updateTransaction,
-} from "@domain/transactions/use-cases/transactionUseCases";
-import { useAuthState } from "@features/auth/providers/AuthProvider";
-import { useTransactionRepository } from "@features/transactions/providers/TransactionRepositoryProvider";
-import { TransactionFiltersValue } from "@features/transactions/ui/transaction-filters-drawer";
+} from "@application/transactions/transactionUseCases";
+import { useAuthState } from "@presentation/auth/providers/AuthProvider";
+import {
+  filterTransactions,
+  getDayRange,
+} from "@domain/transactions/services/transaction-filters";
+import { useRepositories } from "@presentation/providers/RepositoriesContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const LIST_LIMIT = 25;
@@ -24,29 +28,19 @@ type UseTransactionsOptions = {
   limit?: number | null;
 };
 
-function getDateRange(dateValue?: string) {
-  if (!dateValue) return {};
-
-  const selectedDate = new Date(dateValue);
-  if (Number.isNaN(selectedDate.getTime())) return {};
-
-  const start = new Date(selectedDate);
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-
-  return {
-    fromDate: start.toISOString(),
-    toDate: end.toISOString(),
-  };
-}
-
 export function useTransactions(
   filters: TransactionFiltersValue,
   options?: UseTransactionsOptions,
 ) {
-  const repository = useTransactionRepository();
+  const { transactions: transactionRepository, categories: categoryRepository } =
+    useRepositories();
+  const repository = useMemo(
+    () => ({
+      transactions: transactionRepository,
+      categories: categoryRepository,
+    }),
+    [transactionRepository, categoryRepository],
+  );
   const { user } = useAuthState();
   const listLimit =
     options?.limit === null ? undefined : (options?.limit ?? LIST_LIMIT);
@@ -69,7 +63,7 @@ export function useTransactions(
         startAfter,
         transactionType: filters.transactionType,
         categoryId: filters.categoryId,
-        ...getDateRange(filters.date),
+        ...getDayRange(filters.date),
       };
     },
     [filters.categoryId, filters.date, filters.transactionType, listLimit],
@@ -184,41 +178,10 @@ export function useTransactions(
     void refresh();
   }, [refresh]);
 
-  const filteredTransactions = useMemo(() => {
-    const search = filters.search.trim().toLowerCase();
-    const dateKey = filters.date
-      ? new Date(filters.date).toDateString()
-      : undefined;
-
-    return transactions.filter((transaction) => {
-      if (
-        filters.transactionType &&
-        transaction.transactionType !== filters.transactionType
-      ) {
-        return false;
-      }
-
-      if (filters.categoryId && transaction.categoryId !== filters.categoryId) {
-        return false;
-      }
-
-      if (
-        dateKey &&
-        new Date(transaction.createdAt).toDateString() !== dateKey
-      ) {
-        return false;
-      }
-
-      if (
-        search &&
-        !(transaction.description ?? "").toLowerCase().includes(search)
-      ) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [transactions, filters]);
+  const filteredTransactions = useMemo(
+    () => filterTransactions(transactions, filters),
+    [transactions, filters],
+  );
 
   const addTransaction = useCallback(
     async (data: Omit<CreateTransactionDTO, "userId">) => {
@@ -234,7 +197,8 @@ export function useTransactions(
 
   const editTransaction = useCallback(
     async (transactionId: string, data: UpdateTransactionDTO) => {
-      await updateTransaction(repository, transactionId, data);
+      if (!user) return;
+      await updateTransaction(repository, user.uid, transactionId, data);
       setTransactions((current) =>
         current.map((transaction) =>
           transaction.uid === transactionId
@@ -243,17 +207,18 @@ export function useTransactions(
         ),
       );
     },
-    [repository],
+    [repository, user],
   );
 
   const removeTransaction = useCallback(
     async (transactionId: string) => {
-      await deleteTransaction(repository, transactionId);
+      if (!user) return;
+      await deleteTransaction(repository, user.uid, transactionId);
       setTransactions((current) =>
         current.filter((transaction) => transaction.uid !== transactionId),
       );
     },
-    [repository],
+    [repository, user],
   );
 
   return {

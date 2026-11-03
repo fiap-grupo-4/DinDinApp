@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { useAuthState } from "@features/auth/providers/AuthProvider";
-import { useSavingsGoalRepository } from "@features/savings/providers/SavingsGoalRepositoryProvider";
+import { useAuthState } from "@presentation/auth/providers/AuthProvider";
+import { useRepositories } from "@presentation/providers/RepositoriesContext";
 import {
   createSavingsGoal,
   deleteSavingsGoal,
   listSavingsGoals,
   updateSavingsGoal,
-} from "@domain/savings/use-cases/savingsGoalUseCases";
+} from "@application/savings/savingsGoalUseCases";
 import {
   SavingsGoal,
   CreateSavingsGoalDTO,
@@ -14,7 +14,7 @@ import {
 } from "@domain/savings/entities/SavingsGoal";
 
 export function useSavingsGoals() {
-  const repository = useSavingsGoalRepository();
+  const { savingsGoals: repository } = useRepositories();
   const { user } = useAuthState();
 
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
@@ -57,22 +57,24 @@ export function useSavingsGoals() {
 
   const editGoal = useCallback(
     async (goalId: string, data: UpdateSavingsGoalDTO) => {
-      await updateSavingsGoal(repository, goalId, data);
+      if (!user) return;
+      await updateSavingsGoal(repository, user.uid, goalId, data);
       setGoals((current) =>
         current.map((goal) =>
           goal.uid === goalId ? { ...goal, ...data } : goal,
         ),
       );
     },
-    [repository],
+    [repository, user],
   );
 
   const removeGoal = useCallback(
     async (goalId: string) => {
-      await deleteSavingsGoal(repository, goalId);
+      if (!user) return;
+      await deleteSavingsGoal(repository, user.uid, goalId);
       setGoals((current) => current.filter((goal) => goal.uid !== goalId));
     },
-    [repository],
+    [repository, user],
   );
 
   return { goals, isLoading, error, addGoal, editGoal, removeGoal, refresh };

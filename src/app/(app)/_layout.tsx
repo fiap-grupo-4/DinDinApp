@@ -1,6 +1,6 @@
 import { AppBottomBar } from "@/src/shared/ui/app-bottom-bar";
-import { useRequireAuth } from "@features/auth/hooks/useRequireAuth";
-import { useAuthState } from "@/src/features/auth/providers/AuthProvider";
+import { useRequireAuth } from "@presentation/auth/hooks/useRequireAuth";
+import { useAuthState } from "@presentation/auth/providers/AuthProvider";
 import { Text } from "@/src/shared/ui/text";
 import { Stack } from "expo-router";
 import { View } from "react-native";

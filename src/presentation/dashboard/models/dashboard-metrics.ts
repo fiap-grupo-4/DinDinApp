@@ -1,3 +1,5 @@
+import type { TransactionType } from "@domain/transactions/entities/Transaction";
+
 export type FinancialSummary = {
   income: number;
   expense: number;
@@ -19,6 +21,6 @@ export type RecentTransaction = {
   id: string;
   title: string;
   amount: number;
-  transactionType: "income" | "outcome";
+  transactionType: TransactionType;
   date: string;
 };

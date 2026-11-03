@@ -19,17 +19,14 @@ import {
 } from "@/src/shared/ui/select";
 import { Text } from "@/src/shared/ui/text";
 import { Category } from "@domain/categories/entities/Category";
+import {
+  EMPTY_TRANSACTION_FILTERS,
+  TransactionFiltersValue,
+} from "@domain/transactions/entities/TransactionFilters";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Calendar, Search } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Platform, Pressable, View } from "react-native";
-
-export type TransactionFiltersValue = {
-  search: string;
-  transactionType?: "income" | "outcome";
-  categoryId?: string;
-  date?: string;
-};
 
 const TYPE_OPTIONS = [
   { value: "income", label: "Entrada" },
@@ -66,7 +63,7 @@ export function TransactionFiltersDrawer({
   );
 
   function handleClear() {
-    const cleared: TransactionFiltersValue = { search: "" };
+    const cleared: TransactionFiltersValue = EMPTY_TRANSACTION_FILTERS;
     setDraft(cleared);
     onApply(cleared);
     onOpenChange(false);

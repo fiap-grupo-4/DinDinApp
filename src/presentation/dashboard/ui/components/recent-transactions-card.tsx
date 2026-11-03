@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from "@/src/shared/ui/card";
 import { Icon } from "@/src/shared/ui/icon";
 import { Separator } from "@/src/shared/ui/separator";
 import { Text } from "@/src/shared/ui/text";
-import type { RecentTransaction } from "@features/dashboard/models/dashboard-metrics";
+import type { RecentTransaction } from "@presentation/dashboard/models/dashboard-metrics";
 import { ChevronRight, Pencil, Trash2 } from "lucide-react-native";
 import { Alert, View } from "react-native";
 

@@ -1,4 +1,4 @@
-import RegisterScreen from "@/src/features/auth/ui/RegisterScreen";
+import RegisterScreen from "@presentation/auth/ui/RegisterScreen";
 
 export default function Register() {
   return <RegisterScreen />;

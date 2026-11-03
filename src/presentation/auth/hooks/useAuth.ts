@@ -5,8 +5,8 @@ import {
   register,
   signIn,
   signOut,
-} from "@domain/auth/use-cases/authUseCases";
-import { useAuthRepository } from "@features/auth/providers/AuthRepositoryProvider";
+} from "@application/auth/authUseCases";
+import { useRepositories } from "@presentation/providers/RepositoriesContext";
 import { useState } from "react";
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
@@ -61,7 +61,7 @@ function getAuthErrorMessage(
 }
 
 export function useAuth() {
-  const repository = useAuthRepository();
+  const { auth: repository } = useRepositories();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

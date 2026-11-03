@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
-import { useCategoryRepository } from "@features/categories/providers/CategoryRepositoryProvider";
+import { useRepositories } from "@presentation/providers/RepositoriesContext";
 import {
   createCategory,
   listCategories,
-} from "@domain/categories/use-cases/categoryUseCases";
+} from "@application/categories/categoryUseCases";
 import {
   Category,
   CreateCategoryDTO,
 } from "@domain/categories/entities/Category";
 
 export function useCategories(userId: string) {
-  const repository = useCategoryRepository();
+  const { categories: repository } = useRepositories();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -4,7 +4,7 @@ import { cn } from "@/src/lib/utils";
 import { Button } from "@/src/shared/ui/button";
 import { Label } from "@/src/shared/ui/label";
 import { Text } from "@/src/shared/ui/text";
-import { useAuth } from "@features/auth/hooks/useAuth";
+import { useAuth } from "@presentation/auth/hooks/useAuth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "expo-router";
 import { Lock, Mail, User } from "lucide-react-native";

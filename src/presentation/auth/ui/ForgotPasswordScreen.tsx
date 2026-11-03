@@ -11,7 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "expo-router";
 import { Mail, MailCheck } from "lucide-react-native";
 import { Controller, useForm } from "react-hook-form";
-import { useAuth } from "@features/auth/hooks/useAuth";
+import { useAuth } from "@presentation/auth/hooks/useAuth";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { IconInput } from "@/src/shared/ui/icon-input";

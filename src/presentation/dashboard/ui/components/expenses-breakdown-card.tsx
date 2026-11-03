@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader } from "@/src/shared/ui/card";
 import { Text } from "@/src/shared/ui/text";
-import type { ExpenseCategory } from "@features/dashboard/models/dashboard-metrics";
+import type { ExpenseCategory } from "@presentation/dashboard/models/dashboard-metrics";
 import { View } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 import { ChartTooltip } from "./chart-tooltip";

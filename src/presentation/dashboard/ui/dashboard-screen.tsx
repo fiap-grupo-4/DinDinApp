@@ -1,13 +1,14 @@
+import { toast } from "@/src/lib/sonner";
 import { ScreenHeader } from "@/src/shared/ui/screen-header";
 import { Text } from "@/src/shared/ui/text";
 import { SavingsGoal } from "@domain/savings/entities/SavingsGoal";
-import { useAuthState } from "@features/auth/providers/AuthProvider";
-import { useCategories } from "@features/categories/hooks/useCategories";
-import { useDashboardMetrics } from "@features/dashboard/hooks/useDashboardMetrics";
-import { useSavingsGoals } from "@features/savings/hooks/useSavingsGoals";
-import { SavingsGoalFormDrawer } from "@features/savings/ui/savings-goal-form-drawer";
-import { useTransactions } from "@features/transactions/hooks/useTransactions";
-import { TransactionFiltersValue } from "@features/transactions/ui/transaction-filters-drawer";
+import { useAuthState } from "@presentation/auth/providers/AuthProvider";
+import { useCategories } from "@presentation/categories/hooks/useCategories";
+import { useDashboardMetrics } from "@presentation/dashboard/hooks/useDashboardMetrics";
+import { useSavingsGoals } from "@presentation/savings/hooks/useSavingsGoals";
+import { SavingsGoalFormDrawer } from "@presentation/savings/ui/savings-goal-form-drawer";
+import { useTransactions } from "@presentation/transactions/hooks/useTransactions";
+import { EMPTY_TRANSACTION_FILTERS } from "@domain/transactions/entities/TransactionFilters";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView } from "react-native";
@@ -18,8 +19,6 @@ import { FinancialSummaryCard } from "./components/financial-summary-card";
 import { RecentTransactionsCard } from "./components/recent-transactions-card";
 import { SavingsGoalsCard } from "./components/savings-goals-card";
 
-const DASHBOARD_FILTERS: TransactionFiltersValue = { search: "" };
-
 export function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuthState();
@@ -29,7 +28,7 @@ export function DashboardScreen() {
     isLoading: isLoadingTransactions,
     error: transactionsError,
     removeTransaction,
-  } = useTransactions(DASHBOARD_FILTERS, { limit: null });
+  } = useTransactions(EMPTY_TRANSACTION_FILTERS, { limit: null });
   const {
     categories,
     loading: isLoadingCategories,
@@ -58,6 +57,10 @@ export function DashboardScreen() {
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
+
+  function showDeleteError(err: unknown, fallback: string) {
+    toast.error(err instanceof Error ? err.message : fallback);
+  }
 
   function handleAddGoal() {
     setEditingGoal(null);
@@ -109,13 +112,21 @@ export function DashboardScreen() {
         transactions={recentTransactions}
         onSeeMore={() => router.push("/transactions")}
         onEdit={() => router.push("/transactions")}
-        onDelete={(transaction) => removeTransaction(transaction.id)}
+        onDelete={(transaction) =>
+          removeTransaction(transaction.id).catch((err) =>
+            showDeleteError(err, "Não foi possível excluir a transação."),
+          )
+        }
       />
       <SavingsGoalsCard
         goals={goals}
         onAdd={handleAddGoal}
         onEdit={handleEditGoal}
-        onDelete={(goal) => removeGoal(goal.uid)}
+        onDelete={(goal) =>
+          removeGoal(goal.uid).catch((err) =>
+            showDeleteError(err, "Não foi possível excluir a meta."),
+          )
+        }
       />
 
       <SavingsGoalFormDrawer
