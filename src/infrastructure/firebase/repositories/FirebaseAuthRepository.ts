@@ -14,7 +14,7 @@ import {
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
-import { auth, db } from "@/src/lib/firebase";
+import { auth, db } from "@infra/firebase";
 import {
   IAuthRepository,
   AuthUser,

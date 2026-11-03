@@ -15,7 +15,7 @@ import {
   where,
   type QueryConstraint,
 } from "firebase/firestore";
-import { db } from "@lib/firebase";
+import { db } from "@infra/firebase";
 import {
   ITransactionRepository,
   PaginatedResult,

@@ -7,7 +7,7 @@ import {
   where,
   getDocs,
 } from "firebase/firestore";
-import { db } from "@lib/firebase";
+import { db } from "@infra/firebase";
 import { ICategoryRepository } from "@domain/categories/repositories/ICategoryRepository";
 import {
   Category,

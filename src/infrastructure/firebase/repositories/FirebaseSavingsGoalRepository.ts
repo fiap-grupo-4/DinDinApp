@@ -2,6 +2,7 @@ import {
   collection,
   addDoc,
   doc,
+  getDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -9,7 +10,7 @@ import {
   orderBy,
   getDocs,
 } from "firebase/firestore";
-import { db } from "@lib/firebase";
+import { db } from "@infra/firebase";
 import { ISavingsGoalRepository } from "@domain/savings/repositories/ISavingsGoalRepository";
 import {
   SavingsGoal,
@@ -32,6 +33,13 @@ export class FirebaseSavingsGoalRepository implements ISavingsGoalRepository {
   async update(id: string, data: UpdateSavingsGoalDTO): Promise<void> {
     const ref = doc(db, COLLECTION, id);
     await updateDoc(ref, { ...data });
+  }
+
+  async getById(id: string): Promise<SavingsGoal | null> {
+    const ref = doc(db, COLLECTION, id);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
+    return { uid: snap.id, ...(snap.data() as Omit<SavingsGoal, "uid">) };
   }
 
   async delete(id: string): Promise<void> {
