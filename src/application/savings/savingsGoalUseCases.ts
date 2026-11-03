@@ -72,8 +72,13 @@ export async function updateSavingsGoal(
   data: UpdateSavingsGoalDTO,
 ): Promise<void> {
   const current = await loadOwned(repository, userId, savingsGoalId);
-  const normalized: UpdateSavingsGoalDTO = { ...data };
-  if (data.title !== undefined) normalized.title = data.title.trim();
+
+  // Protege contra userId vindo em runtime.
+  const { userId: _ignored, ...fields } = data as UpdateSavingsGoalDTO & {
+    userId?: string;
+  };
+  const normalized: UpdateSavingsGoalDTO = { ...fields };
+  if ("title" in fields) normalized.title = fields.title?.trim() ?? "";
 
   validateGoal({
     title: current.title,

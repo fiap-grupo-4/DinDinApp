@@ -124,6 +124,23 @@ describe("updateSavingsGoal", () => {
     ).rejects.toBeInstanceOf(ValidationError);
   });
 
+  it("descarta userId vindo em runtime", async () => {
+    await updateSavingsGoal(repo, "u1", "g1", {
+      currentValueInCents: 2,
+      userId: "u2",
+    } as never);
+    expect(repo.calls.update).toEqual([
+      { id: "g1", data: { currentValueInCents: 2 } },
+    ]);
+  });
+
+  it("rejeita título undefined explícito com ValidationError", async () => {
+    await expect(
+      updateSavingsGoal(repo, "u1", "g1", { title: undefined }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(repo.writeCount).toBe(0);
+  });
+
   it("NotFoundError para alheia ou inexistente", async () => {
     await expect(
       updateSavingsGoal(repo, "u1", "g2", { title: "Novo título" }),
@@ -132,6 +149,51 @@ describe("updateSavingsGoal", () => {
       updateSavingsGoal(repo, "u1", "nope", { title: "Novo título" }),
     ).rejects.toBeInstanceOf(NotFoundError);
     expect(repo.writeCount).toBe(0);
+  });
+});
+
+describe("updateSavingsGoal (bordas)", () => {
+  it("só current acima do target salvo é rejeitado sem escrita", async () => {
+    await expect(
+      updateSavingsGoal(repo, "u1", "g1", { currentValueInCents: 5001 }),
+    ).rejects.toThrow("O valor atual não pode ser maior que a meta.");
+    expect(repo.writeCount).toBe(0);
+  });
+
+  it("só current igual ao target salvo é aceito", async () => {
+    await updateSavingsGoal(repo, "u1", "g1", { currentValueInCents: 5000 });
+    expect(repo.items.get("g1")?.currentValueInCents).toBe(5000);
+  });
+
+  it("meta nova maior permite current novo que antes estouraria", async () => {
+    await updateSavingsGoal(repo, "u1", "g1", {
+      targetValueInCents: 9000,
+      currentValueInCents: 8000,
+    });
+    expect(repo.calls.update).toHaveLength(1);
+  });
+
+  it("rejeita current negativo e target zero", async () => {
+    await expect(
+      updateSavingsGoal(repo, "u1", "g1", { currentValueInCents: -1 }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      updateSavingsGoal(repo, "u1", "g1", { targetValueInCents: 0 }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(repo.writeCount).toBe(0);
+  });
+
+  it("rejeita userId vazio sem escrita", async () => {
+    await expect(
+      updateSavingsGoal(repo, " ", "g1", { title: "Novo título" }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(repo.writeCount).toBe(0);
+  });
+
+  it("rejeita título só com espaços", async () => {
+    await expect(
+      updateSavingsGoal(repo, "u1", "g1", { title: "     " }),
+    ).rejects.toBeInstanceOf(ValidationError);
   });
 });
 

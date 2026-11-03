@@ -66,6 +66,45 @@ describe("filterTransactions", () => {
   });
 });
 
+describe("filterTransactions (bordas)", () => {
+  it("filters.date inválido é ignorado em vez de excluir tudo", () => {
+    expect(ids(filterTransactions(items, { ...empty, date: "lixo" }))).toEqual([
+      "1",
+      "2",
+      "3",
+    ]);
+  });
+
+  it("combina filtros com E lógico", () => {
+    expect(
+      ids(
+        filterTransactions(items, {
+          search: "mercado",
+          transactionType: "outcome",
+          categoryId: "food",
+          date: new Date(2026, 5, 15, 23).toISOString(),
+        }),
+      ),
+    ).toEqual(["1"]);
+    expect(
+      ids(
+        filterTransactions(items, {
+          search: "mercado",
+          transactionType: "income",
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it("busca só com espaços não filtra", () => {
+    expect(ids(filterTransactions(items, { ...empty, search: "   " }))).toEqual([
+      "1",
+      "2",
+      "3",
+    ]);
+  });
+});
+
 describe("getDayRange", () => {
   it("vazio ou inválido retorna {}", () => {
     expect(getDayRange()).toEqual({});

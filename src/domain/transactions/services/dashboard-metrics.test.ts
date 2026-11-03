@@ -121,6 +121,89 @@ describe("buildMonthlyBalanceTrend", () => {
   });
 });
 
+describe("buildMonthlyBalanceTrend (bordas)", () => {
+  it("vira o ano quando now é fevereiro: de jul do ano anterior a fev", () => {
+    const february = new Date(2026, 1, 10, 12);
+    const result = buildMonthlyBalanceTrend(
+      [tx("1", "income", 100, new Date(2025, 6, 5))],
+      february,
+      8,
+    );
+    expect(result.map((r) => [r.month.getFullYear(), r.month.getMonth()])).toEqual([
+      [2025, 6],
+      [2025, 7],
+      [2025, 8],
+      [2025, 9],
+      [2025, 10],
+      [2025, 11],
+      [2026, 0],
+      [2026, 1],
+    ]);
+    expect(result.every((r) => r.balanceInCents === 100)).toBe(true);
+  });
+
+  it("monthCount negativo retorna []", () => {
+    expect(
+      buildMonthlyBalanceTrend([tx("1", "income", 1, now)], now, -3),
+    ).toEqual([]);
+  });
+
+  it("monthCount 1 devolve só o mês atual com o saldo anterior acumulado", () => {
+    const result = buildMonthlyBalanceTrend(
+      [
+        tx("old", "income", 1000, new Date(2026, 0, 1)),
+        tx("cur", "outcome", 300, new Date(2026, 5, 2)),
+      ],
+      now,
+      1,
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0].balanceInCents).toBe(700);
+  });
+
+  it("só datas inválidas retorna []", () => {
+    expect(
+      buildMonthlyBalanceTrend([tx("1", "income", 1, "lixo")], now, 3),
+    ).toEqual([]);
+  });
+
+  it("ignora transação inválida e transação posterior ao mês atual", () => {
+    const result = buildMonthlyBalanceTrend(
+      [
+        tx("ok", "income", 500, new Date(2026, 5, 1)),
+        tx("invalida", "income", 999, "lixo"),
+        tx("futura", "income", 999, new Date(2026, 6, 1)),
+      ],
+      now,
+      2,
+    );
+    expect(result.map((r) => r.balanceInCents)).toEqual([0, 500]);
+  });
+});
+
+describe("getRecentTransactions (bordas)", () => {
+  it("createdAt inválido vai para o fim, mesmo vindo primeiro", () => {
+    const bad = tx("bad", "income", 1, "lixo");
+    const old = tx("old", "income", 1, new Date(2026, 0, 1));
+    const recent = tx("recent", "income", 1, new Date(2026, 5, 1));
+    expect(
+      getRecentTransactions([bad, old, recent], 3).map((t) => t.uid),
+    ).toEqual(["recent", "old", "bad"]);
+  });
+
+  it("limit 0 retorna vazio", () => {
+    expect(
+      getRecentTransactions([tx("a", "income", 1, now)], 0),
+    ).toEqual([]);
+  });
+
+  it("limit maior que o total devolve todas", () => {
+    expect(
+      getRecentTransactions([tx("a", "income", 1, now)], 10),
+    ).toHaveLength(1);
+  });
+});
+
 describe("getRecentTransactions", () => {
   const a = tx("a", "income", 1, new Date(2026, 5, 1));
   const b = tx("b", "income", 1, new Date(2026, 5, 3));
