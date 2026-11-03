@@ -87,6 +87,22 @@ describe("groupMonthlyExpensesByCategory", () => {
       { categoryId: "a", totalInCents: 150 },
     ]);
   });
+
+  it("junta categoria desconhecida em 'other' quando recebe as conhecidas", () => {
+    const result = groupMonthlyExpensesByCategory(
+      [
+        tx("1", "outcome", 100, new Date(2026, 5, 1), "a"),
+        tx("2", "outcome", 200, new Date(2026, 5, 2), "apagada"),
+        tx("3", "outcome", 300, new Date(2026, 5, 3)),
+      ],
+      now,
+      new Set(["a"]),
+    );
+    expect(result).toEqual([
+      { categoryId: "other", totalInCents: 500 },
+      { categoryId: "a", totalInCents: 100 },
+    ]);
+  });
 });
 
 describe("buildMonthlyBalanceTrend", () => {

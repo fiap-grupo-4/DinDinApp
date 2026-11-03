@@ -66,9 +66,12 @@ export function summarizeMonth(
   return summarize(transactions, (date) => isSameMonth(date, now));
 }
 
+// Com `knownCategoryIds`, categoria que não está na lista (ex.: excluída) cai
+// em UNCATEGORIZED_ID em vez de virar uma fatia própria.
 export function groupMonthlyExpensesByCategory(
   transactions: Transaction[],
   now: Date,
+  knownCategoryIds?: ReadonlySet<string>,
 ): CategoryExpenseTotal[] {
   const totals = new Map<string, number>();
 
@@ -82,7 +85,11 @@ export function groupMonthlyExpensesByCategory(
       continue;
     }
 
-    const categoryId = transaction.categoryId || UNCATEGORIZED_ID;
+    const categoryId =
+      transaction.categoryId &&
+      (!knownCategoryIds || knownCategoryIds.has(transaction.categoryId))
+        ? transaction.categoryId
+        : UNCATEGORIZED_ID;
     totals.set(
       categoryId,
       (totals.get(categoryId) ?? 0) + transaction.valueInCents,

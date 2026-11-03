@@ -43,7 +43,11 @@ export class FirebaseSavingsGoalRepository implements ISavingsGoalRepository {
       if (!snap.exists()) return null;
       return { uid: snap.id, ...(snap.data() as Omit<SavingsGoal, "uid">) };
     } catch (error) {
-      if (isPermissionDenied(error)) return null;
+      if (isPermissionDenied(error)) {
+        // Também cobre sessão expirada ou regra quebrada; fica no log.
+        console.warn(`Leitura negada em ${COLLECTION}/${id}:`, error);
+        return null;
+      }
       throw error;
     }
   }

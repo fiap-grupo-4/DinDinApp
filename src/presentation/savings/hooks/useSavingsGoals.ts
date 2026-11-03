@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuthState } from "@presentation/auth/providers/AuthProvider";
 import { useRepositories } from "@presentation/providers/RepositoriesContext";
 import {
@@ -21,26 +21,42 @@ export function useSavingsGoals() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(() => {
-    if (!user) return;
+  const requestVersionRef = useRef(0);
+
+  const refresh = useCallback(async () => {
+    const requestVersion = requestVersionRef.current + 1;
+    requestVersionRef.current = requestVersion;
+
+    if (!user) {
+      setGoals([]);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
 
-    listSavingsGoals(repository, user.uid)
-      .then(setGoals)
-      .catch((err) => {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Não foi possível carregar suas economias.",
-        );
-      })
-      .finally(() => setIsLoading(false));
+    try {
+      const result = await listSavingsGoals(repository, user.uid);
+      if (requestVersion !== requestVersionRef.current) return;
+      setGoals(result);
+    } catch (err) {
+      if (requestVersion !== requestVersionRef.current) return;
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível carregar suas economias.",
+      );
+    } finally {
+      if (requestVersion === requestVersionRef.current) {
+        setIsLoading(false);
+      }
+    }
   }, [repository, user]);
 
   useEffect(() => {
-    refresh();
+    void refresh();
   }, [refresh]);
 
   const addGoal = useCallback(

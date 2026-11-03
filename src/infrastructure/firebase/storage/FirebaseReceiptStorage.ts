@@ -1,4 +1,4 @@
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { storage } from "@infra/firebase";
 import { IReceiptStorage } from "@domain/transactions/repositories/IReceiptStorage";
 
@@ -16,5 +16,9 @@ export class FirebaseReceiptStorage implements IReceiptStorage {
         blob.type || `image/${extension === "jpg" ? "jpeg" : extension}`,
     });
     return getDownloadURL(storageRef);
+  }
+
+  async remove(receiptUrl: string): Promise<void> {
+    await deleteObject(ref(storage, receiptUrl));
   }
 }

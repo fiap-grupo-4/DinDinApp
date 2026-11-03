@@ -29,7 +29,11 @@ import { Text } from "@/src/shared/ui/text";
 import { useAuthState } from "@presentation/auth/providers/AuthProvider";
 import { useRepositories } from "@presentation/providers/RepositoriesContext";
 import { Category } from "@domain/categories/entities/Category";
-import { Transaction } from "@domain/transactions/entities/Transaction";
+import {
+  Transaction,
+  TransactionType,
+} from "@domain/transactions/entities/Transaction";
+import { saveWithReceipt } from "@application/transactions/receiptUseCases";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowDownCircle,
@@ -43,7 +47,7 @@ import { View } from "react-native";
 
 export type TransactionSubmitData = {
   description: string;
-  transactionType: "income" | "outcome";
+  transactionType: TransactionType;
   categoryId: string;
   valueInCents: number;
   receipt?: string;
@@ -124,20 +128,19 @@ export function TransactionFormDrawer({
     setIsSubmitting(true);
 
     try {
-      let receipt = transaction?.receipt;
-      if (receiptUri && receiptUri !== transaction?.receipt) {
-        receipt = await receiptStorage.upload(user.uid, receiptUri);
-      } else if (!receiptUri) {
-        receipt = undefined;
-      }
-
-      await onSubmit({
-        description: data.description,
-        transactionType: data.transactionType,
-        categoryId: data.categoryId,
-        valueInCents: Math.round(parseCurrencyInput(data.value) * 100),
-        receipt,
-      });
+      await saveWithReceipt(
+        receiptStorage,
+        user.uid,
+        { currentReceipt: transaction?.receipt, selectedUri: receiptUri },
+        (receipt) =>
+          onSubmit({
+            description: data.description,
+            transactionType: data.transactionType,
+            categoryId: data.categoryId,
+            valueInCents: Math.round(parseCurrencyInput(data.value) * 100),
+            receipt,
+          }),
+      );
       onOpenChange(false);
     } catch (err) {
       setSubmitError(

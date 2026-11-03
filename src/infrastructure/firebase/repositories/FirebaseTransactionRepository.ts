@@ -74,7 +74,11 @@ export class FirebaseTransactionRepository implements ITransactionRepository {
       if (!snap.exists()) return null;
       return { uid: snap.id, ...(snap.data() as Omit<Transaction, "uid">) };
     } catch (error) {
-      if (isPermissionDenied(error)) return null;
+      if (isPermissionDenied(error)) {
+        // Também cobre sessão expirada ou regra quebrada; fica no log.
+        console.warn(`Leitura negada em ${COLLECTION}/${id}:`, error);
+        return null;
+      }
       throw error;
     }
   }

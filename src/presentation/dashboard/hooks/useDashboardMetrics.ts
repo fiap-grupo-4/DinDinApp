@@ -10,8 +10,12 @@ import {
   summarizeMonth,
   PeriodSummary,
 } from "@domain/transactions/services/dashboard-metrics";
-import { toValidDate } from "@domain/transactions/services/transaction-dates";
-import { useMemo } from "react";
+import {
+  isSameDay,
+  toValidDate,
+} from "@domain/transactions/services/transaction-dates";
+import { useEffect, useMemo, useState } from "react";
+import { AppState } from "react-native";
 import type {
   BalancePoint,
   ExpenseCategory,
@@ -45,18 +49,51 @@ function formatMonthLabel(month: Date): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
+// Data de referência que vira à meia-noite e ao voltar do background, para o
+// resumo do dia e do mês não ficar preso na data em que a tela abriu.
+function useToday(): Date {
+  const [today, setToday] = useState(() => new Date());
+
+  useEffect(() => {
+    const nextMidnight = new Date(today);
+    nextMidnight.setHours(24, 0, 0, 0);
+    const timeout = setTimeout(
+      () => setToday(new Date()),
+      nextMidnight.getTime() - Date.now(),
+    );
+
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active" && !isSameDay(new Date(), today)) {
+        setToday(new Date());
+      }
+    });
+
+    return () => {
+      clearTimeout(timeout);
+      subscription.remove();
+    };
+  }, [today]);
+
+  return today;
+}
+
 export function useDashboardMetrics(
   transactions: Transaction[],
   categories: Category[],
 ) {
+  const now = useToday();
+
   return useMemo(() => {
-    const now = new Date();
     const categoryNames = new Map(
       categories.map((category) => [category.uid, category.name]),
     );
 
     const expensesByCategory: ExpenseCategory[] =
-      groupMonthlyExpensesByCategory(transactions, now).map(
+      groupMonthlyExpensesByCategory(
+        transactions,
+        now,
+        new Set(categoryNames.keys()),
+      ).map(
         ({ categoryId, totalInCents }, index) => ({
           id: categoryId,
           label: categoryNames.get(categoryId) ?? "Outros",
@@ -94,5 +131,5 @@ export function useDashboardMetrics(
       balanceTrend,
       recentTransactions,
     };
-  }, [transactions, categories]);
+  }, [transactions, categories, now]);
 }

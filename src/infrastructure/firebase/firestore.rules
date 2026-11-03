@@ -22,6 +22,39 @@ service cloud.firestore {
       return request.resource.data.userId == resource.data.userId;
     }
 
+    // Espelha a validação dos casos de uso (src/application), para que ela
+    // valha também para quem chama o SDK direto.
+    function isPositiveInt(value) {
+      return value is int && value > 0;
+    }
+
+    function isValidCategory(data) {
+      return data.name is string && data.name.trim().size() > 0;
+    }
+
+    function categoryIsOwned(categoryId) {
+      return categoryId == null || (
+        categoryId is string
+        && exists(/databases/$(database)/documents/categories/$(categoryId))
+        && get(/databases/$(database)/documents/categories/$(categoryId)).data.userId == request.auth.uid
+      );
+    }
+
+    function isValidTransaction(data) {
+      return isPositiveInt(data.valueInCents)
+        && data.transactionType in ['income', 'outcome']
+        && categoryIsOwned(data.get('categoryId', null));
+    }
+
+    function isValidSavingsGoal(data) {
+      return data.title is string
+        && data.title.trim().size() >= 3
+        && isPositiveInt(data.targetValueInCents)
+        && data.currentValueInCents is int
+        && data.currentValueInCents >= 0
+        && data.currentValueInCents <= data.targetValueInCents;
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow create: if isOwner(userId)
@@ -32,27 +65,33 @@ service cloud.firestore {
     }
 
     match /categories/{categoryId} {
-      allow create: if ownsIncomingDocument();
+      allow create: if ownsIncomingDocument()
+        && isValidCategory(request.resource.data);
       allow read, delete: if ownsExistingDocument();
       allow update: if ownsExistingDocument()
         && ownsIncomingDocument()
-        && ownershipIsUnchanged();
+        && ownershipIsUnchanged()
+        && isValidCategory(request.resource.data);
     }
 
     match /transactions/{transactionId} {
-      allow create: if ownsIncomingDocument();
+      allow create: if ownsIncomingDocument()
+        && isValidTransaction(request.resource.data);
       allow read, delete: if ownsExistingDocument();
       allow update: if ownsExistingDocument()
         && ownsIncomingDocument()
-        && ownershipIsUnchanged();
+        && ownershipIsUnchanged()
+        && isValidTransaction(request.resource.data);
     }
 
     match /savingsGoals/{savingsGoalId} {
-      allow create: if ownsIncomingDocument();
+      allow create: if ownsIncomingDocument()
+        && isValidSavingsGoal(request.resource.data);
       allow read, delete: if ownsExistingDocument();
       allow update: if ownsExistingDocument()
         && ownsIncomingDocument()
-        && ownershipIsUnchanged();
+        && ownershipIsUnchanged()
+        && isValidSavingsGoal(request.resource.data);
     }
   }
 }
