@@ -1,13 +1,5 @@
-import { CategoryRepositoryProvider } from "@features/categories/providers/CategoryRepositoryProvider";
-import { TransactionRepositoryProvider } from "@features/transactions/providers/TransactionRepositoryProvider";
-import TransactionsScreen from "@features/transactions/ui/TransactionsScreen";
+import TransactionsScreen from "@presentation/transactions/ui/TransactionsScreen";
 
 export default function Transactions() {
-  return (
-    <CategoryRepositoryProvider>
-      <TransactionRepositoryProvider>
-        <TransactionsScreen />
-      </TransactionRepositoryProvider>
-    </CategoryRepositoryProvider>
-  );
+  return <TransactionsScreen />;
 }

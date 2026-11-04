@@ -9,4 +9,6 @@ export interface SavingsGoal {
 
 export type CreateSavingsGoalDTO = Omit<SavingsGoal, "uid" | "createdAt">;
 
-export type UpdateSavingsGoalDTO = Partial<CreateSavingsGoalDTO>;
+export type UpdateSavingsGoalDTO = Partial<
+  Omit<CreateSavingsGoalDTO, "userId">
+>;

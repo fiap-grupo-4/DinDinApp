@@ -59,7 +59,7 @@ EXPO_PUBLIC_FIREBASE_APP_ID=
 
 ### Firebase Security Rules
 
-As regras do Firestore e do Storage, além dos índices, ficam junto da infraestrutura compartilhada em `src/lib/firebase/`. Elas permitem que cada usuário autenticado acesse somente os próprios dados e comprovantes. O `firebase.json` permanece na raiz, conforme a convenção da Firebase CLI, e aponta para esses arquivos.
+As regras do Firestore e do Storage, além dos índices, ficam junto da infraestrutura compartilhada em `src/infrastructure/firebase/`. Elas permitem que cada usuário autenticado acesse somente os próprios dados e comprovantes. O `firebase.json` permanece na raiz, conforme a convenção da Firebase CLI, e aponta para esses arquivos.
 
 Antes de usar categorias, transações ou metas de economia, publique as regras e os índices no projeto Firebase:
 
@@ -103,40 +103,59 @@ npx expo start -c
 
 ## Estrutura do projeto
 
+O código segue Clean Architecture, com quatro camadas e uma regra de dependência que aponta sempre para dentro:
+
 ```text
 din-din-app/
-├── App.tsx                  # Ponto de entrada da aplicação
 ├── src/
-│   ├── app/                 # Rotas, layouts e telas da aplicação
-│   │   ├── auth/
-│   │   ├── dashboard/
+│   ├── domain/              # Regras puras: entidades, contratos e serviços (sem React nem Firebase)
+│   │   ├── shared/          # Erros de domínio (ValidationError, NotFoundError)
+│   │   ├── auth/ categories/ savings/
 │   │   └── transactions/
-│   ├── domain/              # Camada de domínio
-│   │   ├── auth/
-│   │   ├── categories/
-│   │   └── transactions/
-│   │       ├── entities/    # Entidades do negócio
-│   │       ├── repositories/# Contratos de persistência
-│   │       └── use-cases/   # Casos de uso
-│   ├── features/            # Módulos por funcionalidade
-│   │   ├── auth/
-│   │   ├── categories/
-│   │   └── transactions/
-│   ├── lib/                 # Configurações externas e utilidades
-│   ├── shared/              # Componentes e UI reutilizáveis
+│   │       ├── entities/    # Transaction, TransactionFiltersValue
+│   │       ├── repositories/# ITransactionRepository, IReceiptStorage
+│   │       └── services/    # Cálculos do dashboard e filtros, como funções puras
+│   ├── application/         # Casos de uso com validação (valor positivo, categoria do próprio usuário, ownership)
+│   ├── infrastructure/
+│   │   └── firebase/        # SDK, repositórios Firestore, Storage, regras e índices
+│   ├── presentation/        # Telas, hooks e contexto de repositórios, por funcionalidade
+│   │   └── providers/       # RepositoriesContext + useRepositories()
+│   ├── main/                # Ponto de composição: AppRepositoriesProvider instancia os repositórios
+│   ├── app/                 # Rotas e layouts do expo-router
+│   ├── lib/                 # Utilidades de apresentação (moeda, schemas de formulário, toast)
+│   ├── shared/ui/           # Componentes de UI reutilizáveis
 │   └── styles/              # Estilos globais e tokens
-├── babel.config.js
-├── package.json
-└── README.md
+├── vitest.config.ts
+└── biome.json
 ```
+
+| Camada           | Pode importar                         |
+| ---------------- | ------------------------------------- |
+| `domain`         | nada além de si mesma                 |
+| `application`    | `domain`                              |
+| `infrastructure` | `domain` e SDKs externos (Firebase)   |
+| `presentation`   | `domain`, `application`, `lib`, `shared` |
+| `main`           | todas (é o único lugar que conhece a infraestrutura) |
+
+A regra é verificada pelo lint (`style/noRestrictedImports` nos `overrides` do `biome.json`): um import proibido quebra o `npm run lint`.
+
+Os repositórios são montados uma única vez em `src/app/_layout.tsx` por `AppRepositoriesProvider`, e as telas e hooks os obtêm com `useRepositories()`. Para testar uma tela com repositórios fake, passe `repositories` ao provider.
 
 ## Conceitos de DDD aplicados
 
-- Entidades: representam os principais objetos do domínio, como usuário, categoria e transação.
-- Casos de uso: encapsulam as regras e fluxos principais da aplicação, como login, cadastro e gestão de despesas.
+- Entidades: representam os principais objetos do domínio, como usuário, categoria, transação e meta de economia.
+- Serviços de domínio: funções puras com as regras de cálculo, como saldo, resumos do período e evolução mensal.
+- Casos de uso: encapsulam os fluxos da aplicação e validam as regras de negócio antes de persistir.
 - Repositórios: definem contratos para acesso aos dados, deixando a regra de negócio independente da infraestrutura.
 - Infraestrutura: implementa esses contratos com tecnologias concretas, como Firebase.
-- Features: organizam cada funcionalidade em módulos com hooks, providers e interface, facilitando manutenção e escalabilidade.
+
+## Testes
+
+Os serviços do domínio e os casos de uso têm testes unitários com [Vitest](https://vitest.dev/), usando repositórios em memória (`src/test/fakes/`).
+
+```bash
+npm test
+```
 
 ## Lint e qualidade
 
@@ -157,7 +176,7 @@ npm run format
 # Type-check
 npm run check-types
 
-# Format + lint + type-check
+# Format + lint + type-check + testes
 npm run check-all
 ```
 
@@ -173,7 +192,8 @@ npm run check-all
 | `npm run lint-error`  | Roda o Biome só com errors              |
 | `npm run format`      | Aplica correções de lint do Biome       |
 | `npm run check-types` | Verifica os tipos com TypeScript        |
-| `npm run check-all`   | Format + lint + type-check              |
+| `npm test`            | Roda os testes unitários (Vitest)       |
+| `npm run check-all`   | Format + lint + type-check + testes     |
 | `npm run generate:mocks` | Cria categorias e transações de exemplo no Firestore |
 
 ### Gerando dados de exemplo
