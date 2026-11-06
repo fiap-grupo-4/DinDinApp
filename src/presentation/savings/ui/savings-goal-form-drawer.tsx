@@ -215,7 +215,7 @@ export function SavingsGoalFormDrawer({
 
         <DrawerFooter>
           <Button
-            onPress={handleSubmit(handleFormSubmit)}
+            onPress={() => void handleSubmit(handleFormSubmit)()}
             disabled={isSubmitting}
             className="bg-brand-600 active:bg-brand-700"
           >

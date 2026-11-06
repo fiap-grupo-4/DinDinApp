@@ -160,7 +160,7 @@ export default function RegisterScreen() {
                   autoComplete="password"
                   textContentType="newPassword"
                   returnKeyType="done"
-                  onSubmitEditing={handleSubmit(onSubmit)}
+                  onSubmitEditing={() => void handleSubmit(onSubmit)()}
                   editable={!isPending}
                   aria-invalid={!!errors.confirmPassword}
                   className={cn(errors.confirmPassword && "border-destructive")}
@@ -178,7 +178,7 @@ export default function RegisterScreen() {
 
           <View className="gap-4">
             <Button
-              onPress={handleSubmit(onSubmit)}
+              onPress={() => void handleSubmit(onSubmit)()}
               disabled={isPending}
               className="bg-brand-600 active:bg-brand-700"
             >

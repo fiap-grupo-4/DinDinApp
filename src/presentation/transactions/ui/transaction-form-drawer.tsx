@@ -380,7 +380,7 @@ export function TransactionFormDrawer({
 
         <DrawerFooter>
           <Button
-            onPress={handleSubmit(handleFormSubmit)}
+            onPress={() => void handleSubmit(handleFormSubmit)()}
             disabled={
               isSubmitting || categoriesLoading || categories.length === 0
             }

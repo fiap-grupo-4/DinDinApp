@@ -191,7 +191,7 @@ export const TransactionsScreen: React.FC = () => {
                 </Button>
               ) : null}
             </View>
-          ) : null
+          ) : undefined
         }
       />
 

@@ -126,7 +126,7 @@ export default function LoginScreen() {
                   autoComplete="password"
                   textContentType="password"
                   returnKeyType="done"
-                  onSubmitEditing={handleSubmit(onSubmit)}
+                  onSubmitEditing={() => void handleSubmit(onSubmit)()}
                   editable={!isPending}
                   aria-invalid={!!errors.password}
                   className={cn(errors.password && "border-destructive")}
@@ -157,7 +157,7 @@ export default function LoginScreen() {
 
           <View className="gap-4">
             <Button
-              onPress={handleSubmit(onSubmit)}
+              onPress={() => void handleSubmit(onSubmit)()}
               disabled={isPending}
               className="bg-brand-600 active:bg-brand-700"
             >
