@@ -10,13 +10,17 @@ export class InMemoryReceiptStorage implements IReceiptStorage {
 
   async upload(userId: string, localUri: string): Promise<string> {
     this.calls.upload.push({ userId, localUri });
-    const url = `https://storage.test/receipts/${userId}/${++this.counter}`;
-    this.files.add(url);
-    return url;
+    const path = `receipts/${userId}/${++this.counter}-test.jpg`;
+    this.files.add(path);
+    return path;
   }
 
-  async remove(receiptUrl: string): Promise<void> {
-    this.calls.remove.push(receiptUrl);
-    this.files.delete(receiptUrl);
+  async getDownloadUrl(receipt: string): Promise<string> {
+    return `https://storage.test/${receipt}`;
+  }
+
+  async remove(receipt: string): Promise<void> {
+    this.calls.remove.push(receipt);
+    this.files.delete(receipt);
   }
 }

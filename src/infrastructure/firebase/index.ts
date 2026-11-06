@@ -13,19 +13,27 @@ type ReactNativeAuthModule = {
 };
 
 function createAuth() {
+  const { getReactNativePersistence } =
+    require("firebase/auth") as ReactNativeAuthModule;
+
+  if (typeof getReactNativePersistence !== "function") {
+    throw new Error("A persistência de autenticação do React Native não está disponível.");
+  }
+
   try {
-    const { getReactNativePersistence } =
-      require("firebase/auth") as ReactNativeAuthModule;
-
-    if (typeof getReactNativePersistence !== "function") {
-      return getAuth(app);
-    }
-
     return initializeAuth(app, {
       persistence: getReactNativePersistence(AsyncStorage),
     });
-  } catch {
-    return getAuth(app);
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: string }).code === "auth/already-initialized"
+    ) {
+      return getAuth(app);
+    }
+    throw error;
   }
 }
 

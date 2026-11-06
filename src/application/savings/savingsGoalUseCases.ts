@@ -5,7 +5,12 @@ import {
 } from "@domain/savings/entities/SavingsGoal";
 import { ISavingsGoalRepository } from "@domain/savings/repositories/ISavingsGoalRepository";
 import { NotFoundError, ValidationError } from "@domain/shared/errors";
-import { requirePositiveInteger, requireUserId } from "../validation/validation";
+import {
+  normalizeText,
+  requirePositiveInteger,
+  requireText,
+  requireUserId,
+} from "../validation/validation";
 
 type GoalValues = Pick<
   SavingsGoal,
@@ -13,9 +18,10 @@ type GoalValues = Pick<
 >;
 
 function validateGoal(values: GoalValues): void {
-  if (values.title.trim().length < 3) {
+  const title = normalizeText(values.title);
+  if (title.length < 3 || title.length > 80) {
     throw new ValidationError(
-      'O campo "Título" deve ter no mínimo 3 caracteres.',
+      'O campo "Título" deve ter entre 3 e 80 caracteres.',
     );
   }
   requirePositiveInteger(
@@ -62,7 +68,13 @@ export async function createSavingsGoal(
 ): Promise<SavingsGoal> {
   requireUserId(data.userId);
   validateGoal(data);
-  return repository.create({ ...data, title: data.title.trim() });
+  const title = requireText(
+    data.title,
+    3,
+    80,
+    'O campo "Título" deve ter entre 3 e 80 caracteres.',
+  );
+  return repository.create({ ...data, title });
 }
 
 export async function updateSavingsGoal(
@@ -78,7 +90,7 @@ export async function updateSavingsGoal(
     userId?: string;
   };
   const normalized: UpdateSavingsGoalDTO = { ...fields };
-  if ("title" in fields) normalized.title = fields.title?.trim() ?? "";
+  if ("title" in fields) normalized.title = normalizeText(fields.title ?? "");
 
   validateGoal({
     title: current.title,

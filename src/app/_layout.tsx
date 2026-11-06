@@ -9,6 +9,11 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Toaster } from "@/src/lib/sonner";
 import { AuthProvider } from "@presentation/auth/providers/AuthProvider";
 import { AppRepositoriesProvider } from "@main/AppRepositoriesProvider";
+import { Button } from "@/src/shared/ui/button";
+import { Text } from "@/src/shared/ui/text";
+import { logger } from "@lib/logger";
+import { useEffect } from "react";
+import { View } from "react-native";
 
 export default function RootLayout() {
   return (
@@ -28,5 +33,29 @@ export default function RootLayout() {
         <Toaster />
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+export function ErrorBoundary({
+  error,
+  retry,
+}: {
+  error: Error;
+  retry: () => void;
+}) {
+  useEffect(() => {
+    logger.error("app.unhandled_error", error);
+  }, [error]);
+
+  return (
+    <View className="flex-1 items-center justify-center gap-4 bg-background px-6">
+      <Text variant="h3">Algo deu errado</Text>
+      <Text variant="muted" className="text-center">
+        Ocorreu um erro inesperado. Tente novamente.
+      </Text>
+      <Button onPress={retry}>
+        <Text>Tentar novamente</Text>
+      </Button>
+    </View>
   );
 }

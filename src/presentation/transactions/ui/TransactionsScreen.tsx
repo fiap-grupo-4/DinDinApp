@@ -1,4 +1,5 @@
 import { toast } from "@/src/lib/sonner";
+import { getSafeErrorMessage } from "@lib/error-messages";
 import { Button } from "@/src/shared/ui/button";
 import { Icon } from "@/src/shared/ui/icon";
 import { ScreenHeader } from "@/src/shared/ui/screen-header";
@@ -84,9 +85,10 @@ export const TransactionsScreen: React.FC = () => {
           onPress: () => {
             removeTransaction(transaction.uid).catch((err) =>
               toast.error(
-                err instanceof Error
-                  ? err.message
-                  : "Não foi possível excluir a transação.",
+                getSafeErrorMessage(
+                  err,
+                  "Não foi possível excluir a transação.",
+                ),
               ),
             );
           },
@@ -189,7 +191,7 @@ export const TransactionsScreen: React.FC = () => {
                 </Button>
               ) : null}
             </View>
-          ) : null
+          ) : undefined
         }
       />
 

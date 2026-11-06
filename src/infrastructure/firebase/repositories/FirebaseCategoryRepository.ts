@@ -6,9 +6,11 @@ import {
   query,
   where,
   getDocs,
+  limit,
 } from "firebase/firestore";
 import { db } from "@infra/firebase";
 import { isPermissionDenied } from "@infra/firebase/errors";
+import { logger } from "../../logging/logger";
 import { ICategoryRepository } from "@domain/categories/repositories/ICategoryRepository";
 import {
   Category,
@@ -36,7 +38,7 @@ export class FirebaseCategoryRepository implements ICategoryRepository {
     } catch (error) {
       if (isPermissionDenied(error)) {
         // Também cobre sessão expirada ou regra quebrada; fica no log.
-        console.warn(`Leitura negada em ${COLLECTION}/${id}:`, error);
+        logger.warn("firestore.category_read_denied", error);
         return null;
       }
       throw error;
@@ -44,7 +46,11 @@ export class FirebaseCategoryRepository implements ICategoryRepository {
   }
 
   async listForUser(userId: string): Promise<Category[]> {
-    const q = query(collection(db, COLLECTION), where("userId", "==", userId));
+    const q = query(
+      collection(db, COLLECTION),
+      where("userId", "==", userId),
+      limit(100),
+    );
     const snapshot = await getDocs(q);
     return snapshot.docs.map((doc) => ({
       uid: doc.id,

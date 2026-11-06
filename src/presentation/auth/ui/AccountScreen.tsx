@@ -12,6 +12,10 @@ import { Skeleton } from "@/src/shared/ui/skeleton";
 import { Text } from "@/src/shared/ui/text";
 import { useAuth } from "@presentation/auth/hooks/useAuth";
 import { useCurrentUserProfile } from "@presentation/auth/hooks/useCurrentUserProfile";
+import { useAuthState } from "@presentation/auth/providers/AuthProvider";
+import { IconInput } from "@/src/shared/ui/icon-input";
+import { Lock } from "lucide-react-native";
+import { useState } from "react";
 import { ScrollView, View } from "react-native";
 
 function getInitials(fullName: string, email: string) {
@@ -81,7 +85,21 @@ function ProfileField({
 
 export function AccountScreen() {
   const { profile, isLoading } = useCurrentUserProfile();
-  const { handleSignOut, isPending } = useAuth();
+  const { user, refreshUser } = useAuthState();
+  const {
+    handleSignOut,
+    isPending,
+    handleStartTotpEnrollment,
+    handleFinishTotpEnrollment,
+    handleDisableTotp,
+  } = useAuth();
+  const [totpEnrollment, setTotpEnrollment] = useState<{
+    secretKey: string;
+  } | null>(null);
+  const [totpCode, setTotpCode] = useState("");
+  const [totpDisableVisible, setTotpDisableVisible] = useState(false);
+  const [totpDisablePassword, setTotpDisablePassword] = useState("");
+  const [totpDisableCode, setTotpDisableCode] = useState("");
 
   const showSkeleton = !profile || isLoading;
 
@@ -91,6 +109,31 @@ export function AccountScreen() {
   const memberSince = profile?.createdAt
     ? formatMemberSince(profile.createdAt)
     : null;
+
+  const beginTotpEnrollment = async () => {
+    const enrollment = await handleStartTotpEnrollment();
+    if (enrollment) setTotpEnrollment(enrollment);
+  };
+
+  const confirmTotpEnrollment = async () => {
+    const enrolled = await handleFinishTotpEnrollment(totpCode);
+    if (!enrolled) return;
+    await refreshUser();
+    setTotpEnrollment(null);
+    setTotpCode("");
+  };
+
+  const confirmTotpDisable = async () => {
+    const disabled = await handleDisableTotp(
+      totpDisablePassword,
+      totpDisableCode,
+    );
+    if (!disabled) return;
+    await refreshUser();
+    setTotpDisableVisible(false);
+    setTotpDisablePassword("");
+    setTotpDisableCode("");
+  };
 
   return (
     <ScrollView
@@ -145,6 +188,127 @@ export function AccountScreen() {
             </CardContent>
           </Card>
         )}
+
+        <Card>
+          <CardHeader>
+            <Text variant="h4">Autenticação em duas etapas</Text>
+            <CardDescription>
+              {user?.hasTotp
+                ? "Um autenticador TOTP está associado à sua conta."
+                : "Adicione códigos TOTP de um app autenticador. Não há SMS."}
+            </CardDescription>
+          </CardHeader>
+          {!user?.hasTotp && !totpEnrollment && (
+            <CardContent>
+              <Button
+                onPress={beginTotpEnrollment}
+                disabled={!user?.emailVerified}
+              >
+                <Text>Ativar autenticador TOTP</Text>
+              </Button>
+              {!user?.emailVerified && (
+                <Text variant="muted" className="mt-2 text-sm">
+                  Verifique seu e-mail antes de ativar o MFA.
+                </Text>
+              )}
+            </CardContent>
+          )}
+          {!user?.hasTotp && totpEnrollment && (
+            <CardContent className="gap-4">
+              <Text>
+                No app autenticador, adicione uma conta manualmente com o nome
+                DinDinApp e esta chave:
+              </Text>
+              <Text selectable className="font-semibold tracking-widest">
+                {totpEnrollment.secretKey}
+              </Text>
+              <Text variant="muted" className="text-sm">
+                Guarde a chave em local seguro. Qualquer pessoa com ela pode
+                gerar códigos para sua conta.
+              </Text>
+              <IconInput
+                icon={Lock}
+                nativeID="totp-enrollment-code"
+                value={totpCode}
+                onChangeText={(value) =>
+                  setTotpCode(value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="Código de seis dígitos"
+                keyboardType="number-pad"
+                autoComplete="one-time-code"
+                maxLength={6}
+                editable={!isPending}
+              />
+              <Button
+                onPress={confirmTotpEnrollment}
+                disabled={isPending || totpCode.length !== 6}
+              >
+                <Text>
+                  {isPending ? "Ativando..." : "Confirmar e ativar TOTP"}
+                </Text>
+              </Button>
+            </CardContent>
+          )}
+          {user?.hasTotp && !totpDisableVisible && (
+            <CardContent>
+              <Button
+                variant="outline"
+                onPress={() => setTotpDisableVisible(true)}
+              >
+                <Text>Desativar TOTP</Text>
+              </Button>
+            </CardContent>
+          )}
+          {user?.hasTotp && totpDisableVisible && (
+            <CardContent className="gap-4">
+              <Text>
+                Para desativar, confirme sua senha e o código atual do
+                autenticador.
+              </Text>
+              <IconInput
+                icon={Lock}
+                nativeID="totp-disable-password"
+                value={totpDisablePassword}
+                onChangeText={setTotpDisablePassword}
+                placeholder="Senha"
+                secureTextEntry
+                autoComplete="current-password"
+                editable={!isPending}
+              />
+              <IconInput
+                icon={Lock}
+                nativeID="totp-disable-code"
+                value={totpDisableCode}
+                onChangeText={(value) =>
+                  setTotpDisableCode(value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="Código TOTP"
+                keyboardType="number-pad"
+                autoComplete="one-time-code"
+                maxLength={6}
+                editable={!isPending}
+              />
+              <Button
+                variant="destructive"
+                onPress={confirmTotpDisable}
+                disabled={
+                  isPending ||
+                  !totpDisablePassword ||
+                  totpDisableCode.length !== 6
+                }
+              >
+                <Text>Confirmar desativação</Text>
+              </Button>
+              <Button
+                variant="ghost"
+                onPress={() => setTotpDisableVisible(false)}
+                disabled={isPending}
+              >
+                <Text>Cancelar</Text>
+              </Button>
+            </CardContent>
+          )}
+        </Card>
 
         <Button
           variant="destructive"

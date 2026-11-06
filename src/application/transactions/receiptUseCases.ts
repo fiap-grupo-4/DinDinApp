@@ -29,11 +29,11 @@ export async function saveWithReceipt(
   try {
     await persist(uploaded);
   } catch (error) {
-    if (uploaded) await storage.remove(uploaded).catch(() => undefined);
+    if (uploaded) await storage.remove(uploaded, userId).catch(() => undefined);
     throw error;
   }
 
   if (currentReceipt) {
-    await storage.remove(currentReceipt).catch(() => undefined);
+    await storage.remove(currentReceipt, userId).catch(() => undefined);
   }
 }

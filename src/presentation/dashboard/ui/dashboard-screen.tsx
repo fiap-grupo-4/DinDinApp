@@ -8,6 +8,7 @@ import { useDashboardMetrics } from "@presentation/dashboard/hooks/useDashboardM
 import { useSavingsGoals } from "@presentation/savings/hooks/useSavingsGoals";
 import { SavingsGoalFormDrawer } from "@presentation/savings/ui/savings-goal-form-drawer";
 import { useTransactions } from "@presentation/transactions/hooks/useTransactions";
+import { getSafeErrorMessage } from "@lib/error-messages";
 import { EMPTY_TRANSACTION_FILTERS } from "@domain/transactions/entities/TransactionFilters";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -59,7 +60,7 @@ export function DashboardScreen() {
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
 
   function showDeleteError(err: unknown, fallback: string) {
-    toast.error(err instanceof Error ? err.message : fallback);
+    toast.error(getSafeErrorMessage(err, fallback));
   }
 
   function handleAddGoal() {

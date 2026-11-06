@@ -18,6 +18,10 @@ const headers = {
     title: "Esqueci a senha",
     subtitle: "Informe seu e-mail para receber o link de redefinição",
   },
+  "verify-email": {
+    title: "Verifique seu e-mail",
+    subtitle: "Confirme seu endereço para proteger sua conta",
+  },
 } as const;
 
 export default function AuthLayout() {
@@ -60,6 +64,7 @@ export default function AuthLayout() {
         <Stack.Screen name="login" />
         <Stack.Screen name="register" />
         <Stack.Screen name="forgot-password" />
+        <Stack.Screen name="verify-email" />
       </Stack>
     </View>
   );

@@ -10,9 +10,17 @@ import { Lock, Mail } from "lucide-react-native";
 import { Controller, useForm } from "react-hook-form";
 import { useAuth } from "@presentation/auth/hooks/useAuth";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { useState } from "react";
 
 export default function LoginScreen() {
-  const { isPending, error, handleSignIn } = useAuth();
+  const {
+    isPending,
+    error,
+    mfaRequired,
+    handleSignIn,
+    handleTotpSignIn,
+  } = useAuth();
+  const [totpCode, setTotpCode] = useState("");
 
   const {
     control,
@@ -41,6 +49,34 @@ export default function LoginScreen() {
         bounces={false}
       >
         <View className="-mt-6 flex-1 gap-8 rounded-t-2xl bg-gray-100 px-6 pb-10 pt-10">
+          {mfaRequired ? (
+            <View className="gap-4">
+              <Text className="text-base font-medium">
+                Digite o código do seu app autenticador
+              </Text>
+              <IconInput
+                icon={Lock}
+                nativeID="login-totp-code"
+                value={totpCode}
+                onChangeText={(value) =>
+                  setTotpCode(value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="000000"
+                keyboardType="number-pad"
+                autoComplete="one-time-code"
+                maxLength={6}
+                editable={!isPending}
+              />
+              <Button
+                onPress={() => handleTotpSignIn(totpCode)}
+                disabled={isPending || totpCode.length !== 6}
+                className="bg-brand-600 active:bg-brand-700"
+              >
+                <Text>{isPending ? "Verificando..." : "Verificar código"}</Text>
+              </Button>
+            </View>
+          ) : (
+            <>
           <View className="gap-2">
             <Label nativeID="login-email">E-mail</Label>
             <Controller
@@ -90,7 +126,7 @@ export default function LoginScreen() {
                   autoComplete="password"
                   textContentType="password"
                   returnKeyType="done"
-                  onSubmitEditing={handleSubmit(onSubmit)}
+                  onSubmitEditing={() => void handleSubmit(onSubmit)()}
                   editable={!isPending}
                   aria-invalid={!!errors.password}
                   className={cn(errors.password && "border-destructive")}
@@ -121,7 +157,7 @@ export default function LoginScreen() {
 
           <View className="gap-4">
             <Button
-              onPress={handleSubmit(onSubmit)}
+              onPress={() => void handleSubmit(onSubmit)()}
               disabled={isPending}
               className="bg-brand-600 active:bg-brand-700"
             >
@@ -146,6 +182,8 @@ export default function LoginScreen() {
               </Button>
             </Link>
           </View>
+            </>
+          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

@@ -12,7 +12,11 @@ import {
   PaginatedResult,
   TransactionFilters,
 } from "@domain/transactions/repositories/ITransactionRepository";
-import { requirePositiveInteger, requireUserId } from "../validation/validation";
+import {
+  normalizeText,
+  requirePositiveInteger,
+  requireUserId,
+} from "../validation/validation";
 
 export type TransactionUseCaseDeps = {
   transactions: ITransactionRepository;
@@ -33,8 +37,11 @@ function validateType(type: TransactionType): void {
 }
 
 function normalizeDescription(description?: string): string | undefined {
-  const trimmed = description?.trim();
-  return trimmed ? trimmed : undefined;
+  const normalized = description ? normalizeText(description) : "";
+  if (normalized.length > 200) {
+    throw new ValidationError("A descrição deve ter no máximo 200 caracteres.");
+  }
+  return normalized || undefined;
 }
 
 async function validateCategory(
@@ -69,9 +76,13 @@ export async function listTransactions(
   requireUserId(userId);
   if (
     filters?.limit !== undefined &&
-    (!Number.isInteger(filters.limit) || filters.limit <= 0)
+    (!Number.isInteger(filters.limit) ||
+      filters.limit <= 0 ||
+      filters.limit > 99)
   ) {
-    throw new ValidationError("O limite deve ser um inteiro maior que zero.");
+    throw new ValidationError(
+      "O limite deve ser um inteiro entre 1 e 99.",
+    );
   }
   return deps.transactions.listForUser(userId, filters);
 }

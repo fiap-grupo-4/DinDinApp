@@ -132,7 +132,7 @@ function SelectContent({
                       ...StyleSheet.flatten(style ?? {}),
                       width: triggerPosition.width,
                     }
-                    : StyleSheet.flatten(style ?? {})
+                    : (StyleSheet.flatten(style ?? {}) ?? undefined)
                 }
                 {...props}
               >
