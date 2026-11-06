@@ -27,7 +27,7 @@ describe("createCategory", () => {
   it("rejeita nome vazio", async () => {
     await expect(
       createCategory(repo, { userId: "u1", name: "   " }),
-    ).rejects.toThrow("Informe o nome da categoria.");
+    ).rejects.toThrow("O nome da categoria deve ter entre 1 e 60 caracteres.");
     expect(repo.calls.create).toHaveLength(0);
   });
 

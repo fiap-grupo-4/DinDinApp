@@ -1,84 +1,45 @@
 import { toast } from "@/src/lib/sonner";
 import { CreateUserRequest } from "@domain/auth/entities/User";
-import { DomainError } from "@domain/shared/errors";
+import { TotpChallengeRequiredError } from "@domain/auth/errors";
+import { getErrorCode, getSafeErrorMessage } from "@lib/error-messages";
+import { logger } from "@lib/logger";
 import {
   forgotPassword,
+  disableTotp,
+  finishTotpEnrollment,
   register,
+  resolveTotpSignIn,
+  sendVerificationEmail,
   signIn,
   signOut,
+  startTotpEnrollment,
 } from "@application/auth/authUseCases";
 import { useRepositories } from "@presentation/providers/RepositoriesContext";
 import { useState } from "react";
-
-const AUTH_ERROR_MESSAGES: Record<string, string> = {
-  "auth/invalid-email": "E-mail inválido.",
-  "auth/user-disabled": "Esta conta foi desativada.",
-  "auth/user-not-found": "E-mail ou senha inválidos.",
-  "auth/wrong-password": "E-mail ou senha inválidos.",
-  "auth/invalid-credential": "E-mail ou senha inválidos.",
-  "auth/email-already-in-use": "Este e-mail já está em uso.",
-  "auth/weak-password":
-    "A senha deve ter no mínimo 6 caracteres, com letra maiúscula, minúscula e caractere especial.",
-  "auth/password-does-not-meet-requirements":
-    "A senha deve ter letra minúscula, maiúscula e um caractere especial.",
-  "auth/too-many-requests": "Muitas tentativas. Tente novamente mais tarde.",
-  "auth/network-request-failed": "Falha de conexão. Verifique sua internet.",
-  "auth/operation-not-allowed":
-    "Login com e-mail e senha não está habilitado.",
-  "permission-denied":
-    "Sem permissão para salvar os dados. Verifique as regras do Firestore.",
-};
-
-function getErrorCode(error: unknown) {
-  if (typeof error === "object" && error !== null && "code" in error) {
-    const code = String((error as { code: unknown }).code).trim();
-    if (code) return code;
-  }
-
-  if (error instanceof Error) {
-    const match = error.message.match(/\((auth\/[a-z0-9-]+)\)/i);
-    if (match?.[1]) return match[1];
-  }
-
-  return null;
-}
-
-function getAuthErrorMessage(
-  error: unknown,
-  fallback: string,
-  overrides?: Record<string, string>,
-) {
-  if (error instanceof DomainError) return error.message;
-
-  const code = getErrorCode(error);
-
-  if (!code) return fallback;
-
-  return (
-    overrides?.[code] ??
-    overrides?.[`auth/${code}`] ??
-    AUTH_ERROR_MESSAGES[code] ??
-    AUTH_ERROR_MESSAGES[`auth/${code}`] ??
-    `${fallback} (${code})`
-  );
-}
 
 export function useAuth() {
   const { auth: repository } = useRepositories();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mfaRequired, setMfaRequired] = useState(false);
 
   const handleSignIn = async (email: string, password: string) => {
     if (isPending) return;
 
     setIsPending(true);
     setError(null);
+    setMfaRequired(false);
 
     try {
       await signIn(repository, email, password);
       toast.success("Login realizado com sucesso.");
     } catch (err) {
-      const message = getAuthErrorMessage(err, "Erro ao fazer login.");
+      if (err instanceof TotpChallengeRequiredError) {
+        setMfaRequired(true);
+        return;
+      }
+      logger.warn("auth.sign_in_failed", err);
+      const message = getSafeErrorMessage(err, "Erro ao fazer login.");
       setError(message);
       toast.error(message);
     } finally {
@@ -96,9 +57,32 @@ export function useAuth() {
       await signOut(repository);
       toast.success("Você saiu da conta.");
     } catch (err) {
-      const message = getAuthErrorMessage(err, "Erro ao sair.");
+      logger.warn("auth.sign_out_failed", err);
+      const message = getSafeErrorMessage(err, "Erro ao sair.");
       setError(message);
       toast.error(message);
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  const handleTotpSignIn = async (code: string) => {
+    if (isPending) return;
+    setIsPending(true);
+    setError(null);
+    try {
+      await resolveTotpSignIn(repository, code);
+      setMfaRequired(false);
+      toast.success("Login realizado com sucesso.");
+    } catch (err) {
+      logger.warn("auth.totp_sign_in_failed", err);
+      const message = getSafeErrorMessage(
+        err,
+        "Não foi possível validar o código. Tente novamente.",
+      );
+      setError(message);
+      toast.error(message);
+    } finally {
       setIsPending(false);
     }
   };
@@ -111,10 +95,10 @@ export function useAuth() {
 
     try {
       await register(repository, data);
-      toast.success("Conta criada com sucesso.");
+      toast.success("Conta criada. Verifique seu e-mail para continuar.");
     } catch (err) {
-      console.error("Falha no cadastro:", err);
-      const message = getAuthErrorMessage(err, "Erro ao criar conta.");
+      logger.error("auth.registration_failed", err);
+      const message = getSafeErrorMessage(err, "Erro ao criar conta.");
       setError(message);
       toast.error(message);
     } finally {
@@ -131,17 +115,24 @@ export function useAuth() {
     try {
       await forgotPassword(repository, email);
       toast.success(
-        "Enviamos um e-mail para redefinir sua senha. Verifique a caixa de entrada e o spam.",
+        "Se houver uma conta associada ao e-mail informado, enviaremos instruções para redefinir a senha.",
       );
       return true;
     } catch (err) {
-      const message = getAuthErrorMessage(
+      if (
+        getErrorCode(err) === "auth/user-not-found" ||
+        getErrorCode(err) === "auth/email-not-found" ||
+        getErrorCode(err) === "auth/invalid-credential"
+      ) {
+        toast.success(
+          "Se houver uma conta associada ao e-mail informado, enviaremos instruções para redefinir a senha.",
+        );
+        return true;
+      }
+      logger.warn("auth.password_reset_failed", err);
+      const message = getSafeErrorMessage(
         err,
-        "Erro ao enviar e-mail de recuperação.",
-        {
-          "auth/user-not-found":
-            "Não encontramos uma conta com este e-mail.",
-        },
+        "Não foi possível solicitar a redefinição agora.",
       );
       setError(message);
       toast.error(message);
@@ -151,12 +142,87 @@ export function useAuth() {
     }
   };
 
+  const handleSendVerificationEmail = async () => {
+    if (isPending) return;
+    setIsPending(true);
+    try {
+      await sendVerificationEmail(repository);
+      toast.success("Enviamos um link de verificação para seu e-mail.");
+    } catch (err) {
+      logger.warn("auth.verification_email_failed", err);
+      toast.error(getSafeErrorMessage(err, "Não foi possível enviar o e-mail."));
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  const handleStartTotpEnrollment = async () => {
+    if (isPending) return null;
+    setIsPending(true);
+    try {
+      return await startTotpEnrollment(repository);
+    } catch (err) {
+      logger.warn("auth.totp_enrollment_start_failed", err);
+      toast.error(
+        getSafeErrorMessage(err, "Não foi possível iniciar a ativação do MFA."),
+      );
+      return null;
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  const handleFinishTotpEnrollment = async (code: string) => {
+    if (isPending) return false;
+    setIsPending(true);
+    try {
+      await finishTotpEnrollment(repository, code);
+      toast.success("Autenticação TOTP ativada.");
+      return true;
+    } catch (err) {
+      logger.warn("auth.totp_enrollment_failed", err);
+      toast.error(
+        getSafeErrorMessage(err, "Não foi possível validar o código TOTP."),
+      );
+      return false;
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  const handleDisableTotp = async (password: string, code: string) => {
+    if (isPending) return false;
+    setIsPending(true);
+    try {
+      await disableTotp(repository, password, code);
+      toast.success("Autenticação TOTP desativada.");
+      return true;
+    } catch (err) {
+      logger.warn("auth.totp_disable_failed", err);
+      toast.error(
+        getSafeErrorMessage(
+          err,
+          "Não foi possível desativar o TOTP. Confira a senha e o código.",
+        ),
+      );
+      return false;
+    } finally {
+      setIsPending(false);
+    }
+  };
+
   return {
     isPending,
     error,
+    mfaRequired,
     handleSignIn,
+    handleTotpSignIn,
     handleRegister,
     handleSignOut,
     handleForgotPassword,
+    handleSendVerificationEmail,
+    handleStartTotpEnrollment,
+    handleFinishTotpEnrollment,
+    handleDisableTotp,
   };
 }

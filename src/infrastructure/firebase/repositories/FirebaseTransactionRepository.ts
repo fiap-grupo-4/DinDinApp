@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@infra/firebase";
 import { isPermissionDenied } from "@infra/firebase/errors";
+import { logger } from "../../logging/logger";
 import {
   ITransactionRepository,
   PaginatedResult,
@@ -76,7 +77,7 @@ export class FirebaseTransactionRepository implements ITransactionRepository {
     } catch (error) {
       if (isPermissionDenied(error)) {
         // Também cobre sessão expirada ou regra quebrada; fica no log.
-        console.warn(`Leitura negada em ${COLLECTION}/${id}:`, error);
+        logger.warn("firestore.transaction_read_denied", error);
         return null;
       }
       throw error;
@@ -117,16 +118,13 @@ export class FirebaseTransactionRepository implements ITransactionRepository {
       );
     }
 
-    const lim = filters?.limit;
-    if (lim !== undefined) {
-      constraints.push(limit(lim + 1));
-    }
+    const lim = filters?.limit ?? 100;
+    constraints.push(limit(Math.min(lim + 1, 100)));
 
     const snapshot = await getDocs(
       query(collection(db, COLLECTION), ...constraints),
     );
-    const pageDocs =
-      lim === undefined ? snapshot.docs : snapshot.docs.slice(0, lim);
+    const pageDocs = snapshot.docs.slice(0, lim);
     const data = pageDocs.map((d) => ({
       uid: d.id,
       ...(d.data() as Omit<Transaction, "uid">),
@@ -136,7 +134,7 @@ export class FirebaseTransactionRepository implements ITransactionRepository {
     return {
       data,
       nextCursor:
-        lim !== undefined && snapshot.docs.length > lim && lastDocument
+        lim < 100 && snapshot.docs.length > lim && lastDocument
           ? {
               createdAt: lastDocument.get("createdAt") as string,
               id: lastDocument.id,

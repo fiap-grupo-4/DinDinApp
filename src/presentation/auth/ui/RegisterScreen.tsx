@@ -134,8 +134,7 @@ export default function RegisterScreen() {
               )}
             />
             <Text variant="muted" className="text-xs">
-              Mínimo 6 caracteres, com letra maiúscula, minúscula e caractere
-              especial.
+              Use de 8 a 128 caracteres e inclua pelo menos um número.
             </Text>
             {errors.password && (
               <Text className="text-destructive text-sm">

@@ -20,6 +20,7 @@ import {
   getDayRange,
 } from "@domain/transactions/services/transaction-filters";
 import { useRepositories } from "@presentation/providers/RepositoriesContext";
+import { getSafeErrorMessage } from "@lib/error-messages";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const LIST_LIMIT = 25;
@@ -103,11 +104,7 @@ export function useTransactions(
 
       setNextCursor(null);
       setHasMore(false);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Não foi possível carregar transações.",
-      );
+      setError(getSafeErrorMessage(err, "Não foi possível carregar transações."));
     } finally {
       if (requestVersion === requestVersionRef.current) {
         setIsLoading(false);
@@ -154,9 +151,7 @@ export function useTransactions(
     } catch (err) {
       if (requestVersion === requestVersionRef.current) {
         setError(
-          err instanceof Error
-            ? err.message
-            : "Não foi possível carregar mais transações.",
+          getSafeErrorMessage(err, "Não foi possível carregar mais transações."),
         );
       }
     } finally {

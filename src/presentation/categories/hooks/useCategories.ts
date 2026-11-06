@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getSafeErrorMessage } from "@lib/error-messages";
 import { useRepositories } from "@presentation/providers/RepositoriesContext";
 import {
   createCategory,
@@ -28,7 +29,9 @@ export function useCategories(userId: string) {
     listCategories(repository, userId)
       .then(setCategories)
       .catch((err) =>
-        setError((err as Error).message || "Erro ao carregar categorias."),
+        setError(
+          getSafeErrorMessage(err, "Não foi possível carregar categorias."),
+        ),
       )
       .finally(() => setLoading(false));
   }, [repository, userId]);
@@ -41,7 +44,9 @@ export function useCategories(userId: string) {
       setCategories((prev) => [...prev, category]);
       return category;
     } catch (err) {
-      setError((err as Error).message || "Erro ao criar categoria.");
+      setError(
+        getSafeErrorMessage(err, "Não foi possível criar a categoria."),
+      );
       throw err;
     } finally {
       setLoading(false);

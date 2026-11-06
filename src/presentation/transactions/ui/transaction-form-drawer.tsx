@@ -4,6 +4,7 @@ import {
   type TransactionFormData,
 } from "@/src/lib/schemas/transactions";
 import { cn } from "@/src/lib/utils";
+import { getSafeErrorMessage } from "@lib/error-messages";
 import { Button } from "@/src/shared/ui/button";
 import {
   Drawer,
@@ -86,6 +87,9 @@ export function TransactionFormDrawer({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [receiptUri, setReceiptUri] = useState<string | undefined>(undefined);
+  const [receiptPreviewUri, setReceiptPreviewUri] = useState<
+    string | undefined
+  >(undefined);
 
   const {
     control,
@@ -118,8 +122,38 @@ export function TransactionFormDrawer({
       value: transaction ? toFieldValue(transaction.valueInCents) : "",
     });
     setReceiptUri(transaction?.receipt);
+    setReceiptPreviewUri(undefined);
     setSubmitError(null);
   }, [open, transaction, reset]);
+
+  useEffect(() => {
+    if (!receiptUri) {
+      setReceiptPreviewUri(undefined);
+      return;
+    }
+    if (!user || !receiptUri.startsWith("receipts/")) {
+      setReceiptPreviewUri(receiptUri);
+      return;
+    }
+
+    let active = true;
+    receiptStorage
+      .getDownloadUrl(receiptUri, user.uid)
+      .then((url) => {
+        if (active) setReceiptPreviewUri(url);
+      })
+      .catch(() => {
+        if (active) setReceiptPreviewUri(undefined);
+      });
+    return () => {
+      active = false;
+    };
+  }, [receiptStorage, receiptUri, user]);
+
+  const handleReceiptChange = (uri: string | undefined) => {
+    setReceiptUri(uri);
+    setReceiptPreviewUri(uri);
+  };
 
   const handleFormSubmit = async (data: TransactionFormData) => {
     if (!user) return;
@@ -144,9 +178,7 @@ export function TransactionFormDrawer({
       onOpenChange(false);
     } catch (err) {
       setSubmitError(
-        err instanceof Error
-          ? err.message
-          : "Não foi possível salvar a transação.",
+        getSafeErrorMessage(err, "Não foi possível salvar a transação."),
       );
     } finally {
       setIsSubmitting(false);
@@ -335,8 +367,8 @@ export function TransactionFormDrawer({
           <View className="gap-2">
             <Label>Comprovante</Label>
             <ImageInput
-              value={receiptUri}
-              onChange={setReceiptUri}
+              value={receiptPreviewUri}
+              onChange={handleReceiptChange}
               disabled={isSubmitting}
             />
           </View>
