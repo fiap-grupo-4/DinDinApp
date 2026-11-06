@@ -28,6 +28,7 @@ import {
 } from "@domain/transactions/entities/Transaction";
 
 const COLLECTION = "transactions";
+const MAX_QUERY_LIMIT = 100;
 
 function omitUndefinedValues<T extends object>(data: T): Partial<T> {
   return Object.fromEntries(
@@ -77,6 +78,33 @@ export class FirebaseTransactionRepository implements ITransactionRepository {
     userId: string,
     filters?: TransactionFilters,
   ): Promise<PaginatedResult<Transaction>> {
+    if (filters?.limit !== undefined) {
+      return this.listPage(userId, filters, filters.limit);
+    }
+
+    const data: Transaction[] = [];
+    let cursor = filters?.startAfter;
+
+    do {
+      const page = await this.listPage(
+        userId,
+        { ...filters, startAfter: cursor },
+        MAX_QUERY_LIMIT,
+        { probeNextPage: false },
+      );
+      data.push(...page.data);
+      cursor = page.nextCursor ?? undefined;
+    } while (cursor);
+
+    return { data, nextCursor: null };
+  }
+
+  private async listPage(
+    userId: string,
+    filters: TransactionFilters | undefined,
+    pageSize: number,
+    { probeNextPage = true }: { probeNextPage?: boolean } = {},
+  ): Promise<PaginatedResult<Transaction>> {
     const constraints: QueryConstraint[] = [
       where("userId", "==", userId),
     ];
@@ -107,26 +135,29 @@ export class FirebaseTransactionRepository implements ITransactionRepository {
       );
     }
 
-    const lim = filters?.limit;
-    if (lim !== undefined) {
-      constraints.push(limit(lim + 1));
-    }
+    const size = Math.min(
+      Math.max(pageSize, 1),
+      probeNextPage ? MAX_QUERY_LIMIT - 1 : MAX_QUERY_LIMIT,
+    );
+    constraints.push(limit(probeNextPage ? size + 1 : size));
 
     const snapshot = await getDocs(
       query(collection(db, COLLECTION), ...constraints),
     );
-    const pageDocs =
-      lim === undefined ? snapshot.docs : snapshot.docs.slice(0, lim);
+    const pageDocs = snapshot.docs.slice(0, size);
     const data = pageDocs.map((d) => ({
       uid: d.id,
       ...(d.data() as Omit<Transaction, "uid">),
     }));
     const lastDocument = pageDocs.at(-1);
+    const hasNextPage = probeNextPage
+      ? snapshot.docs.length > size
+      : snapshot.docs.length === size;
 
     return {
       data,
       nextCursor:
-        lim !== undefined && snapshot.docs.length > lim && lastDocument
+        hasNextPage && lastDocument
           ? {
               createdAt: lastDocument.get("createdAt") as string,
               id: lastDocument.id,

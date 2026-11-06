@@ -8,6 +8,7 @@ import {
   where,
   orderBy,
   getDocs,
+  limit,
 } from "firebase/firestore";
 import { db } from "@lib/firebase";
 import { ISavingsGoalRepository } from "@domain/savings/repositories/ISavingsGoalRepository";
@@ -18,6 +19,7 @@ import {
 } from "@domain/savings/entities/SavingsGoal";
 
 const COLLECTION = "savingsGoals";
+const MAX_QUERY_LIMIT = 100;
 
 export class FirebaseSavingsGoalRepository implements ISavingsGoalRepository {
   async create(data: CreateSavingsGoalDTO): Promise<SavingsGoal> {
@@ -44,6 +46,7 @@ export class FirebaseSavingsGoalRepository implements ISavingsGoalRepository {
       collection(db, COLLECTION),
       where("userId", "==", userId),
       orderBy("createdAt", "desc"),
+      limit(MAX_QUERY_LIMIT),
     );
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => ({

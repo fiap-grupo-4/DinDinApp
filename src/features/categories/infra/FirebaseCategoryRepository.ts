@@ -6,6 +6,7 @@ import {
   query,
   where,
   getDocs,
+  limit,
 } from "firebase/firestore";
 import { db } from "@lib/firebase";
 import { ICategoryRepository } from "@domain/categories/repositories/ICategoryRepository";
@@ -15,6 +16,7 @@ import {
 } from "@domain/categories/entities/Category";
 
 const COLLECTION = "categories";
+const MAX_QUERY_LIMIT = 100;
 
 export class FirebaseCategoryRepository implements ICategoryRepository {
   async create(data: CreateCategoryDTO): Promise<Category> {
@@ -34,7 +36,11 @@ export class FirebaseCategoryRepository implements ICategoryRepository {
   }
 
   async listForUser(userId: string): Promise<Category[]> {
-    const q = query(collection(db, COLLECTION), where("userId", "==", userId));
+    const q = query(
+      collection(db, COLLECTION),
+      where("userId", "==", userId),
+      limit(MAX_QUERY_LIMIT),
+    );
     const snapshot = await getDocs(q);
     return snapshot.docs.map((doc) => ({
       uid: doc.id,
