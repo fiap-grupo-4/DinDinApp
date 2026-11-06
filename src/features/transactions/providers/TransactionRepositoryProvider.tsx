@@ -1,23 +1,28 @@
 import React, { createContext, useContext } from "react";
+import type { Observable } from "rxjs";
 import { FirebaseTransactionRepository } from "@features/transactions/infra/FirebaseTransactionRepository";
+import { ObservableTransactionRepository } from "@features/transactions/infra/ObservableTransactionRepository";
 import { ITransactionRepository } from "@domain/transactions/repositories/ITransactionRepository";
+import { TransactionChange } from "@domain/transactions/events/TransactionChange";
+
+const sharedRepository = new ObservableTransactionRepository(
+  new FirebaseTransactionRepository(),
+);
 
 const TransactionRepositoryContext =
-  createContext<ITransactionRepository | null>(null);
+  createContext<ObservableTransactionRepository | null>(null);
 
 export const TransactionRepositoryProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const repository = new FirebaseTransactionRepository();
-
   return (
-    <TransactionRepositoryContext.Provider value={repository}>
+    <TransactionRepositoryContext.Provider value={sharedRepository}>
       {children}
     </TransactionRepositoryContext.Provider>
   );
 };
 
-export function useTransactionRepository(): ITransactionRepository {
+function useObservableTransactionRepository() {
   const repository = useContext(TransactionRepositoryContext);
   if (!repository) {
     throw new Error(
@@ -25,4 +30,12 @@ export function useTransactionRepository(): ITransactionRepository {
     );
   }
   return repository;
+}
+
+export function useTransactionRepository(): ITransactionRepository {
+  return useObservableTransactionRepository();
+}
+
+export function useTransactionChanges(): Observable<TransactionChange> {
+  return useObservableTransactionRepository().changes$;
 }

@@ -20,7 +20,7 @@ import {
 import { Text } from "@/src/shared/ui/text";
 import { Category } from "@domain/categories/entities/Category";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { Calendar, Search } from "lucide-react-native";
+import { Calendar } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Platform, Pressable, View } from "react-native";
 
@@ -80,25 +80,12 @@ export function TransactionFiltersDrawer({
         <DrawerHeader>
           <DrawerTitle>Filtrar transações</DrawerTitle>
           <DrawerDescription>
-            Combine busca, tipo e data para encontrar transações específicas.
+            Combine tipo, categoria e data para encontrar transações
+            específicas.
           </DrawerDescription>
         </DrawerHeader>
 
         <View className="gap-4">
-          <View className="gap-2">
-            <Label nativeID="filter-search">Busca</Label>
-            <IconInput
-              icon={Search}
-              nativeID="filter-search"
-              value={draft.search}
-              onChangeText={(text) =>
-                setDraft((current) => ({ ...current, search: text }))
-              }
-              placeholder="Buscar transações..."
-              returnKeyType="search"
-            />
-          </View>
-
           <View className="gap-2">
             <Label>Tipo</Label>
             <Select

@@ -3,6 +3,10 @@ import {
   Transaction,
   UpdateTransactionDTO,
 } from "@domain/transactions/entities/Transaction";
+import {
+  applyTransactionChange,
+  type TransactionChange,
+} from "@domain/transactions/events/TransactionChange";
 import type {
   TransactionCursor,
   TransactionFilters,
@@ -14,15 +18,109 @@ import {
   updateTransaction,
 } from "@domain/transactions/use-cases/transactionUseCases";
 import { useAuthState } from "@features/auth/providers/AuthProvider";
-import { useTransactionRepository } from "@features/transactions/providers/TransactionRepositoryProvider";
+import {
+  useTransactionChanges,
+  useTransactionRepository,
+} from "@features/transactions/providers/TransactionRepositoryProvider";
 import type { TransactionFiltersValue } from "@features/transactions/models/transaction-filters";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  EMPTY,
+  Subject,
+  catchError,
+  concat,
+  exhaustMap,
+  from,
+  map,
+  merge,
+  of,
+  scan,
+  startWith,
+  switchMap,
+  tap,
+} from "rxjs";
 
 const LIST_LIMIT = 25;
 
 type UseTransactionsOptions = {
   limit?: number | null;
 };
+
+type TransactionListState = {
+  transactions: Transaction[];
+  isLoading: boolean;
+  isLoadingMore: boolean;
+  hasMore: boolean;
+  error: string | null;
+};
+
+type TransactionListEvent =
+  | { type: "refreshStarted" }
+  | { type: "firstPageLoaded"; data: Transaction[]; hasMore: boolean }
+  | { type: "firstPageFailed"; error: string }
+  | { type: "loadMoreStarted" }
+  | { type: "nextPageLoaded"; data: Transaction[]; hasMore: boolean }
+  | { type: "nextPageFailed"; error: string }
+  | { type: "changed"; change: TransactionChange };
+
+const INITIAL_STATE: TransactionListState = {
+  transactions: [],
+  isLoading: true,
+  isLoadingMore: false,
+  hasMore: false,
+  error: null,
+};
+
+const SIGNED_OUT_STATE: TransactionListState = {
+  ...INITIAL_STATE,
+  isLoading: false,
+};
+
+function reduceTransactionList(
+  state: TransactionListState,
+  event: TransactionListEvent,
+): TransactionListState {
+  switch (event.type) {
+    case "refreshStarted":
+      return { ...state, isLoading: true, isLoadingMore: false, error: null };
+    case "firstPageLoaded":
+      return {
+        ...state,
+        transactions: event.data,
+        hasMore: event.hasMore,
+        isLoading: false,
+      };
+    case "firstPageFailed":
+      return { ...state, hasMore: false, isLoading: false, error: event.error };
+    case "loadMoreStarted":
+      return { ...state, isLoadingMore: true, error: null };
+    case "nextPageLoaded": {
+      const merged = new Map(
+        [...state.transactions, ...event.data].map((transaction) => [
+          transaction.uid,
+          transaction,
+        ]),
+      );
+      return {
+        ...state,
+        transactions: [...merged.values()],
+        hasMore: event.hasMore,
+        isLoadingMore: false,
+      };
+    }
+    case "nextPageFailed":
+      return { ...state, isLoadingMore: false, error: event.error };
+    case "changed":
+      return {
+        ...state,
+        transactions: applyTransactionChange(state.transactions, event.change),
+      };
+  }
+}
+
+function toErrorMessage(err: unknown, fallback: string): string {
+  return err instanceof Error ? err.message : fallback;
+}
 
 function getDateRange(dateValue?: string) {
   if (!dateValue) return {};
@@ -47,21 +145,27 @@ export function useTransactions(
   options?: UseTransactionsOptions,
 ) {
   const repository = useTransactionRepository();
+  const changes$ = useTransactionChanges();
   const { user } = useAuthState();
+  const userId = user?.uid;
   const listLimit =
     options?.limit === null ? undefined : (options?.limit ?? LIST_LIMIT);
 
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [nextCursor, setNextCursor] = useState<TransactionCursor | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const requestVersionRef = useRef(0);
-  const isLoadingMoreRef = useRef(false);
+  const [state, setState] = useState<TransactionListState>(INITIAL_STATE);
+  const stateRef = useRef(state);
+  const [refresh$] = useState(() => new Subject<void>());
+  const [loadMore$] = useState(() => new Subject<void>());
 
-  const buildRepositoryFilters = useCallback(
-    (startAfter?: TransactionCursor): TransactionFilters | undefined => {
+  useEffect(() => {
+    if (!userId) {
+      stateRef.current = SIGNED_OUT_STATE;
+      setState(SIGNED_OUT_STATE);
+      return;
+    }
+
+    const buildRepositoryFilters = (
+      startAfter?: TransactionCursor,
+    ): TransactionFilters | undefined => {
       if (listLimit === undefined) return undefined;
 
       return {
@@ -71,118 +175,104 @@ export function useTransactions(
         categoryId: filters.categoryId,
         ...getDateRange(filters.date),
       };
-    },
-    [filters.categoryId, filters.date, filters.transactionType, listLimit],
-  );
+    };
 
-  const refresh = useCallback(async () => {
-    const requestVersion = requestVersionRef.current + 1;
-    requestVersionRef.current = requestVersion;
-    isLoadingMoreRef.current = false;
-
-    if (!user) {
-      setTransactions([]);
-      setNextCursor(null);
-      setHasMore(false);
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    setIsLoadingMore(false);
-    setError(null);
-
-    try {
-      const result = await listTransactions(
-        repository,
-        user.uid,
-        buildRepositoryFilters(),
+    const fetchPage = (startAfter?: TransactionCursor) =>
+      from(
+        listTransactions(repository, userId, buildRepositoryFilters(startAfter)),
       );
 
-      if (requestVersion !== requestVersionRef.current) return;
+    const pages$ = refresh$.pipe(
+      startWith(undefined),
+      switchMap(() => {
+        let cursor: TransactionCursor | null = null;
 
-      setTransactions(result.data);
-      setNextCursor(result.nextCursor ?? null);
-      setHasMore(result.nextCursor != null);
-    } catch (err) {
-      if (requestVersion !== requestVersionRef.current) return;
-
-      setNextCursor(null);
-      setHasMore(false);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Não foi possível carregar transações.",
-      );
-    } finally {
-      if (requestVersion === requestVersionRef.current) {
-        setIsLoading(false);
-      }
-    }
-  }, [repository, user, buildRepositoryFilters]);
-
-  const loadMore = useCallback(async () => {
-    if (
-      !user ||
-      !nextCursor ||
-      !hasMore ||
-      listLimit === undefined ||
-      isLoadingMoreRef.current
-    ) {
-      return;
-    }
-
-    const requestVersion = requestVersionRef.current;
-    isLoadingMoreRef.current = true;
-    setIsLoadingMore(true);
-    setError(null);
-
-    try {
-      const result = await listTransactions(
-        repository,
-        user.uid,
-        buildRepositoryFilters(nextCursor),
-      );
-
-      if (requestVersion !== requestVersionRef.current) return;
-
-      setTransactions((current) => {
-        const merged = new Map(
-          [...current, ...result.data].map((transaction) => [
-            transaction.uid,
-            transaction,
-          ]),
+        const firstPage$ = concat(
+          of<TransactionListEvent>({ type: "refreshStarted" }),
+          fetchPage().pipe(
+            tap((result) => {
+              cursor = result.nextCursor ?? null;
+            }),
+            map(
+              (result): TransactionListEvent => ({
+                type: "firstPageLoaded",
+                data: result.data,
+                hasMore: result.nextCursor != null,
+              }),
+            ),
+            catchError((err) =>
+              of<TransactionListEvent>({
+                type: "firstPageFailed",
+                error: toErrorMessage(
+                  err,
+                  "Não foi possível carregar transações.",
+                ),
+              }),
+            ),
+          ),
         );
-        return [...merged.values()];
+
+        const nextPages$ = loadMore$.pipe(
+          exhaustMap(() => {
+            if (!cursor) return EMPTY;
+
+            return concat(
+              of<TransactionListEvent>({ type: "loadMoreStarted" }),
+              fetchPage(cursor).pipe(
+                tap((result) => {
+                  cursor = result.nextCursor ?? null;
+                }),
+                map(
+                  (result): TransactionListEvent => ({
+                    type: "nextPageLoaded",
+                    data: result.data,
+                    hasMore: result.nextCursor != null,
+                  }),
+                ),
+                catchError((err) =>
+                  of<TransactionListEvent>({
+                    type: "nextPageFailed",
+                    error: toErrorMessage(
+                      err,
+                      "Não foi possível carregar mais transações.",
+                    ),
+                  }),
+                ),
+              ),
+            );
+          }),
+        );
+
+        return concat(firstPage$, nextPages$);
+      }),
+    );
+
+    const localChanges$ = changes$.pipe(
+      map((change): TransactionListEvent => ({ type: "changed", change })),
+    );
+
+    const subscription = merge(pages$, localChanges$)
+      .pipe(scan(reduceTransactionList, stateRef.current))
+      .subscribe((nextState) => {
+        stateRef.current = nextState;
+        setState(nextState);
       });
-      setNextCursor(result.nextCursor ?? null);
-      setHasMore(result.nextCursor != null);
-    } catch (err) {
-      if (requestVersion === requestVersionRef.current) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Não foi possível carregar mais transações.",
-        );
-      }
-    } finally {
-      isLoadingMoreRef.current = false;
-      if (requestVersion === requestVersionRef.current) {
-        setIsLoadingMore(false);
-      }
-    }
+
+    return () => subscription.unsubscribe();
   }, [
     repository,
-    user,
-    nextCursor,
-    hasMore,
+    changes$,
+    refresh$,
+    loadMore$,
+    userId,
     listLimit,
-    buildRepositoryFilters,
+    filters.transactionType,
+    filters.categoryId,
+    filters.date,
   ]);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const refresh = useCallback(() => refresh$.next(), [refresh$]);
+  const loadMore = useCallback(() => loadMore$.next(), [loadMore$]);
 
   const filteredTransactions = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
@@ -190,7 +280,7 @@ export function useTransactions(
       ? new Date(filters.date).toDateString()
       : undefined;
 
-    return transactions.filter((transaction) => {
+    return state.transactions.filter((transaction) => {
       if (
         filters.transactionType &&
         transaction.transactionType !== filters.transactionType
@@ -218,30 +308,19 @@ export function useTransactions(
 
       return true;
     });
-  }, [transactions, filters]);
+  }, [state.transactions, filters]);
 
   const addTransaction = useCallback(
     async (data: Omit<CreateTransactionDTO, "userId">) => {
-      if (!user) return;
-      const transaction = await createTransaction(repository, {
-        ...data,
-        userId: user.uid,
-      });
-      setTransactions((current) => [transaction, ...current]);
+      if (!userId) return;
+      await createTransaction(repository, { ...data, userId });
     },
-    [repository, user],
+    [repository, userId],
   );
 
   const editTransaction = useCallback(
     async (transactionId: string, data: UpdateTransactionDTO) => {
       await updateTransaction(repository, transactionId, data);
-      setTransactions((current) =>
-        current.map((transaction) =>
-          transaction.uid === transactionId
-            ? { ...transaction, ...data }
-            : transaction,
-        ),
-      );
     },
     [repository],
   );
@@ -249,19 +328,16 @@ export function useTransactions(
   const removeTransaction = useCallback(
     async (transactionId: string) => {
       await deleteTransaction(repository, transactionId);
-      setTransactions((current) =>
-        current.filter((transaction) => transaction.uid !== transactionId),
-      );
     },
     [repository],
   );
 
   return {
     transactions: filteredTransactions,
-    isLoading,
-    isLoadingMore,
-    hasMore,
-    error,
+    isLoading: state.isLoading,
+    isLoadingMore: state.isLoadingMore,
+    hasMore: state.hasMore,
+    error: state.error,
     addTransaction,
     editTransaction,
     removeTransaction,

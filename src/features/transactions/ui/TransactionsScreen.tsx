@@ -3,8 +3,10 @@ import {
   useHasBeenTrue,
   usePreloadWhenIdle,
 } from "@/src/lib/lazy";
+import { useDebouncedText } from "@/src/lib/reactive";
 import { Button } from "@/src/shared/ui/button";
 import { Icon } from "@/src/shared/ui/icon";
+import { IconInput } from "@/src/shared/ui/icon-input";
 import { ScreenHeader } from "@/src/shared/ui/screen-header";
 import { Text } from "@/src/shared/ui/text";
 import { Transaction } from "@domain/transactions/entities/Transaction";
@@ -18,7 +20,7 @@ import {
   TransactionListItem,
   TransactionWithCategory,
 } from "@features/transactions/ui/transaction-list-item";
-import { ListFilter, Plus } from "lucide-react-native";
+import { ListFilter, Plus, Search } from "lucide-react-native";
 import React, { Suspense, useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -85,9 +87,26 @@ export const TransactionsScreen: React.FC = () => {
     categories,
   );
 
-  const hasSearch = filters.search.trim().length > 0;
+  const [searchText, setSearchText] = useState(filters.search);
+  const emitSearch = useDebouncedText((search) =>
+    setFilters((current) =>
+      current.search === search ? current : { ...current, search },
+    ),
+  );
+
+  function handleSearchChange(text: string) {
+    setSearchText(text);
+    emitSearch(text);
+  }
+
+  const handleApplyFilters = useCallback(
+    (value: TransactionFiltersValue) =>
+      setFilters((current) => ({ ...value, search: current.search })),
+    [],
+  );
+
+  const hasSearch = filters.search.length > 0;
   const activeFilterCount = [
-    hasSearch,
     !!filters.transactionType,
     !!filters.categoryId,
     !!filters.date,
@@ -154,6 +173,16 @@ export const TransactionsScreen: React.FC = () => {
           subtitle="Acompanhe suas movimentações financeiras."
         />
 
+        <IconInput
+          icon={Search}
+          value={searchText}
+          onChangeText={handleSearchChange}
+          placeholder="Buscar transações..."
+          accessibilityLabel="Buscar transações"
+          returnKeyType="search"
+          autoCorrect={false}
+        />
+
         <View className="flex-row items-center justify-between gap-3">
           <Button
             variant="outline"
@@ -178,7 +207,7 @@ export const TransactionsScreen: React.FC = () => {
         </View>
       </View>
     ),
-    [activeFilterCount],
+    [activeFilterCount, searchText],
   );
 
   return (
@@ -247,7 +276,7 @@ export const TransactionsScreen: React.FC = () => {
             onOpenChange={setIsFiltersOpen}
             categories={categories}
             value={filters}
-            onApply={setFilters}
+            onApply={handleApplyFilters}
           />
         </Suspense>
       ) : null}
