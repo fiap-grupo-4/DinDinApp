@@ -1,0 +1,76 @@
+import { useAuthState } from "@presentation/auth/providers/AuthProvider";
+import { User } from "@domain/auth/entities/User";
+import { getProfile } from "@application/auth/authUseCases";
+import { useRepositories } from "@presentation/providers/RepositoriesContext";
+import { useEffect, useState } from "react";
+
+function toFallbackProfile(
+  uid: string,
+  email: string,
+  displayName: string | null,
+): User {
+  return {
+    uid,
+    email,
+    fullName: displayName?.trim() || "",
+    birthday: "",
+    createdAt: "",
+  };
+}
+
+export function useCurrentUserProfile() {
+  const { user } = useAuthState();
+  const { auth: repository } = useRepositories();
+  const uid = user?.uid;
+  const email = user?.email ?? "";
+  const displayName = user?.displayName ?? null;
+
+  const [profile, setProfile] = useState<User | null>(
+    uid ? toFallbackProfile(uid, email, displayName) : null,
+  );
+  const [isLoading, setIsLoading] = useState(!!uid);
+
+  useEffect(() => {
+    if (!uid) {
+      setProfile(null);
+      setIsLoading(false);
+      return;
+    }
+
+    const fallback = toFallbackProfile(uid, email, displayName);
+    let isCancelled = false;
+
+    setProfile(fallback);
+    setIsLoading(true);
+
+    getProfile(repository, uid)
+      .then((data) => {
+        if (isCancelled) return;
+
+        if (!data) {
+          setProfile(fallback);
+          return;
+        }
+
+        setProfile({
+          ...data,
+          email: data.email || fallback.email,
+          fullName: data.fullName || fallback.fullName,
+        });
+      })
+      .catch(() => {
+        if (isCancelled) return;
+        setProfile(fallback);
+      })
+      .finally(() => {
+        if (isCancelled) return;
+        setIsLoading(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [repository, uid, email, displayName]);
+
+  return { profile, isLoading };
+}

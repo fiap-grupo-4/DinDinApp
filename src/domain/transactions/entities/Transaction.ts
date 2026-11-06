@@ -1,8 +1,15 @@
+export type TransactionType = "income" | "outcome";
+
+export const TRANSACTION_TYPES: readonly TransactionType[] = [
+  "income",
+  "outcome",
+];
+
 export interface Transaction {
   uid: string;
   userId: string;
   valueInCents: number;
-  transactionType: "income" | "outcome";
+  transactionType: TransactionType;
   createdAt: string;
   description?: string;
   categoryId?: string;
@@ -11,4 +18,6 @@ export interface Transaction {
 
 export type CreateTransactionDTO = Omit<Transaction, "uid" | "createdAt">;
 
-export type UpdateTransactionDTO = Partial<CreateTransactionDTO>;
+export type UpdateTransactionDTO = Partial<
+  Omit<CreateTransactionDTO, "userId">
+>;

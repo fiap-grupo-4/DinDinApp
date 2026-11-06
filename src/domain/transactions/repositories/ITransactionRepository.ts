@@ -1,4 +1,5 @@
 import {
+  TransactionType,
   Transaction,
   CreateTransactionDTO,
   UpdateTransactionDTO,
@@ -6,7 +7,7 @@ import {
 
 export interface TransactionFilters {
   categoryId?: string;
-  transactionType?: "income" | "outcome";
+  transactionType?: TransactionType;
   fromDate?: string;
   toDate?: string;
   search?: string;
