@@ -145,3 +145,132 @@ export function getRecentTransactions(
     })
     .slice(0, Math.max(0, limit));
 }
+
+export type DashboardMetrics = {
+  balanceInCents: number;
+  daily: PeriodSummary;
+  monthly: PeriodSummary;
+  monthlyExpensesByCategory: CategoryExpenseTotal[];
+  balanceTrend: MonthlyBalance[];
+  recentTransactions: Transaction[];
+};
+
+export type DashboardMetricsOptions = {
+  balanceMonths: number;
+  recentLimit: number;
+  knownCategoryIds?: ReadonlySet<string>;
+};
+
+function monthIndex(date: Date): number {
+  return date.getFullYear() * 12 + date.getMonth();
+}
+
+type TimedTransaction = { transaction: Transaction; time: number };
+
+function insertRecent(
+  recent: TimedTransaction[],
+  item: TimedTransaction,
+  limit: number,
+) {
+  if (limit <= 0) return;
+  if (recent.length === limit && item.time <= recent[limit - 1].time) return;
+
+  let position = recent.findIndex((current) => item.time > current.time);
+  if (position === -1) position = recent.length;
+
+  recent.splice(position, 0, item);
+  if (recent.length > limit) recent.pop();
+}
+
+// Mesmo resultado das funções acima, calculado em uma única passada pela lista.
+export function computeDashboardMetrics(
+  transactions: Transaction[],
+  now: Date,
+  { balanceMonths, recentLimit, knownCategoryIds }: DashboardMetricsOptions,
+): DashboardMetrics {
+  const monthCount = Math.max(0, balanceMonths);
+  const currentMonth = monthIndex(now);
+  const firstTrendMonth = currentMonth - (monthCount - 1);
+
+  const daily: PeriodSummary = { incomeInCents: 0, expenseInCents: 0 };
+  const monthly: PeriodSummary = { incomeInCents: 0, expenseInCents: 0 };
+  const expensesByCategory = new Map<string, number>();
+  const monthDeltas = new Array<number>(monthCount).fill(0);
+  const recent: TimedTransaction[] = [];
+
+  let balanceInCents = 0;
+  let balanceBeforeTrend = 0;
+  let hasDatedTransactions = false;
+
+  for (const transaction of transactions) {
+    const signedValue = signedValueInCents(transaction);
+    balanceInCents += signedValue;
+
+    const date = toValidDate(transaction.createdAt);
+    insertRecent(
+      recent,
+      { transaction, time: date?.getTime() ?? 0 },
+      recentLimit,
+    );
+
+    if (!date) continue;
+    hasDatedTransactions = true;
+
+    const month = monthIndex(date);
+    const trendPosition = month - firstTrendMonth;
+    if (trendPosition < 0) {
+      balanceBeforeTrend += signedValue;
+    } else if (trendPosition < monthCount) {
+      monthDeltas[trendPosition] += signedValue;
+    }
+
+    if (month !== currentMonth) continue;
+
+    const isToday = isSameDay(date, now);
+    if (transaction.transactionType === "income") {
+      monthly.incomeInCents += transaction.valueInCents;
+      if (isToday) daily.incomeInCents += transaction.valueInCents;
+      continue;
+    }
+
+    monthly.expenseInCents += transaction.valueInCents;
+    if (isToday) daily.expenseInCents += transaction.valueInCents;
+
+    const categoryId =
+      transaction.categoryId &&
+      (!knownCategoryIds || knownCategoryIds.has(transaction.categoryId))
+        ? transaction.categoryId
+        : UNCATEGORIZED_ID;
+    expensesByCategory.set(
+      categoryId,
+      (expensesByCategory.get(categoryId) ?? 0) + transaction.valueInCents,
+    );
+  }
+
+  let runningBalance = balanceBeforeTrend;
+  const balanceTrend =
+    hasDatedTransactions && monthCount > 0
+      ? monthDeltas.map((delta, index) => {
+          runningBalance += delta;
+          return {
+            month: new Date(
+              now.getFullYear(),
+              now.getMonth() - (monthCount - 1) + index,
+              1,
+            ),
+            balanceInCents: runningBalance,
+          };
+        })
+      : [];
+
+  return {
+    balanceInCents,
+    daily,
+    monthly,
+    monthlyExpensesByCategory: [...expensesByCategory.entries()]
+      .sort((left, right) => right[1] - left[1])
+      .map(([categoryId, totalInCents]) => ({ categoryId, totalInCents })),
+    balanceTrend,
+    recentTransactions: recent.map((item) => item.transaction),
+  };
+}

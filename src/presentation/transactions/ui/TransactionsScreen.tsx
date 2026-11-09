@@ -1,7 +1,14 @@
+import {
+  lazyWithPreload,
+  useHasBeenTrue,
+  usePreloadWhenIdle,
+} from "@/src/lib/lazy";
+import { useDebouncedText } from "@/src/lib/reactive";
 import { toast } from "@/src/lib/sonner";
 import { getSafeErrorMessage } from "@lib/error-messages";
 import { Button } from "@/src/shared/ui/button";
 import { Icon } from "@/src/shared/ui/icon";
+import { IconInput } from "@/src/shared/ui/icon-input";
 import { ScreenHeader } from "@/src/shared/ui/screen-header";
 import { Text } from "@/src/shared/ui/text";
 import { Transaction } from "@domain/transactions/entities/Transaction";
@@ -14,18 +21,39 @@ import { useAuthState } from "@presentation/auth/providers/AuthProvider";
 import { useCategories } from "@presentation/categories/hooks/useCategories";
 import { useTransactionCategories } from "@presentation/transactions/hooks/useTransactionCategories";
 import { useTransactions } from "@presentation/transactions/hooks/useTransactions";
-import { TransactionFiltersDrawer } from "@presentation/transactions/ui/transaction-filters-drawer";
-import {
-  TransactionFormDrawer,
-  TransactionSubmitData,
-} from "@presentation/transactions/ui/transaction-form-drawer";
+import type { TransactionSubmitData } from "@presentation/transactions/ui/transaction-form-drawer";
 import {
   TransactionListItem,
   TransactionWithCategory,
 } from "@presentation/transactions/ui/transaction-list-item";
-import { ListFilter, Plus } from "lucide-react-native";
-import React, { useState } from "react";
-import { ActivityIndicator, Alert, FlatList, View } from "react-native";
+import { ListFilter, Plus, Search } from "lucide-react-native";
+import React, { Suspense, useCallback, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  type ListRenderItem,
+  Platform,
+  View,
+} from "react-native";
+
+const TransactionFiltersDrawer = lazyWithPreload(
+  () => import("@presentation/transactions/ui/transaction-filters-drawer"),
+);
+
+const TransactionFormDrawer = lazyWithPreload(
+  () => import("@presentation/transactions/ui/transaction-form-drawer"),
+);
+
+const IDLE_PRELOADS = [TransactionFormDrawer, TransactionFiltersDrawer];
+
+function keyExtractor(transaction: TransactionWithCategory) {
+  return transaction.uid;
+}
+
+function ItemSeparator() {
+  return <View className="h-3" />;
+}
 
 export const TransactionsScreen: React.FC = () => {
   const { user } = useAuthState();
@@ -42,6 +70,10 @@ export const TransactionsScreen: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
+  const shouldMountFilters = useHasBeenTrue(isFiltersOpen);
+  const shouldMountForm = useHasBeenTrue(isFormOpen);
+
+  usePreloadWhenIdle(IDLE_PRELOADS);
 
   const {
     transactions,
@@ -61,41 +93,74 @@ export const TransactionsScreen: React.FC = () => {
     categories,
   );
 
-  const activeFilterCount = countActiveFilters(filters);
+  const [searchText, setSearchText] = useState(filters.search);
+  const emitSearch = useDebouncedText((search) =>
+    setFilters((current) =>
+      current.search === search ? current : { ...current, search },
+    ),
+  );
+
+  function handleSearchChange(text: string) {
+    setSearchText(text);
+    emitSearch(text);
+  }
+
+  const handleApplyFilters = useCallback(
+    (value: TransactionFiltersValue) =>
+      setFilters((current) => ({ ...value, search: current.search })),
+    [],
+  );
+
+  const hasSearch = filters.search.length > 0;
+  const activeFilterCount = countActiveFilters({ ...filters, search: "" });
 
   function handleAdd() {
     setEditingTransaction(null);
     setIsFormOpen(true);
   }
 
-  function handleEdit(transaction: TransactionWithCategory) {
+  const handleEdit = useCallback((transaction: TransactionWithCategory) => {
     setEditingTransaction(transaction);
     setIsFormOpen(true);
-  }
+  }, []);
 
-  function handleDelete(transaction: TransactionWithCategory) {
-    Alert.alert(
-      "Excluir transação",
-      `Tem certeza que deseja excluir "${transaction.description || "esta transação"}"?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Excluir",
-          style: "destructive",
-          onPress: () => {
-            removeTransaction(transaction.uid).catch((err) =>
-              toast.error(
-                getSafeErrorMessage(
-                  err,
-                  "Não foi possível excluir a transação.",
+  const handleDelete = useCallback(
+    (transaction: TransactionWithCategory) => {
+      Alert.alert(
+        "Excluir transação",
+        `Tem certeza que deseja excluir "${transaction.description || "esta transação"}"?`,
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Excluir",
+            style: "destructive",
+            onPress: () => {
+              removeTransaction(transaction.uid).catch((err) =>
+                toast.error(
+                  getSafeErrorMessage(
+                    err,
+                    "Não foi possível excluir a transação.",
+                  ),
                 ),
-              ),
-            );
+              );
+            },
           },
-        },
-      ],
-    );
-  }
+        ],
+      );
+    },
+    [removeTransaction],
+  );
+
+  const renderItem = useCallback<ListRenderItem<TransactionWithCategory>>(
+    ({ item }) => (
+      <TransactionListItem
+        transaction={item}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
+    ),
+    [handleEdit, handleDelete],
+  );
 
   async function handleSubmit(data: TransactionSubmitData) {
     if (editingTransaction) {
@@ -105,56 +170,76 @@ export const TransactionsScreen: React.FC = () => {
     }
   }
 
+  const handleRefresh = useCallback(() => refresh(), [refresh]);
+
+  const handleEndReached = useCallback(() => {
+    if (!isLoading && !hasSearch) loadMore();
+  }, [isLoading, hasSearch, loadMore]);
+
+  const listHeader = useMemo(
+    () => (
+      <View className="gap-6 pb-6">
+        <ScreenHeader
+          title="Transações"
+          subtitle="Acompanhe suas movimentações financeiras."
+        />
+
+        <IconInput
+          icon={Search}
+          value={searchText}
+          onChangeText={handleSearchChange}
+          placeholder="Buscar transações..."
+          accessibilityLabel="Buscar transações"
+          returnKeyType="search"
+          autoCorrect={false}
+        />
+
+        <View className="flex-row items-center justify-between gap-3">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onPressIn={() => void TransactionFiltersDrawer.preload()}
+            onPress={() => setIsFiltersOpen(true)}
+          >
+            <Icon as={ListFilter} size={16} />
+            <Text>
+              Filtros
+              {activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+            </Text>
+          </Button>
+          <Button
+            className="flex-1 bg-brand-600 active:bg-brand-700"
+            onPressIn={() => void TransactionFormDrawer.preload()}
+            onPress={handleAdd}
+          >
+            <Icon as={Plus} size={16} className="text-white" />
+            <Text>Nova Transação</Text>
+          </Button>
+        </View>
+      </View>
+    ),
+    [activeFilterCount, searchText],
+  );
+
   return (
     <View className="flex-1 bg-background">
       <FlatList
         data={transactionsWithCategory}
-        keyExtractor={(transaction) => transaction.uid}
-        renderItem={({ item }) => (
-          <TransactionListItem
-            transaction={item}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-        )}
-        ItemSeparatorComponent={() => <View className="h-3" />}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        ItemSeparatorComponent={ItemSeparator}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        windowSize={7}
+        removeClippedSubviews={Platform.OS === "android"}
         contentContainerClassName="flex-grow px-6 py-8"
         showsVerticalScrollIndicator={false}
         refreshing={isLoading && transactionsWithCategory.length > 0}
-        onRefresh={() => void refresh()}
-        onEndReached={() => {
-          if (!isLoading && !filters.search.trim()) void loadMore();
-        }}
+        onRefresh={handleRefresh}
+        onEndReached={handleEndReached}
         onEndReachedThreshold={0.4}
-        ListHeaderComponent={
-          <View className="gap-6 pb-6">
-            <ScreenHeader
-              title="Transações"
-              subtitle="Acompanhe suas movimentações financeiras."
-            />
-
-            <View className="flex-row items-center justify-between gap-3">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onPress={() => setIsFiltersOpen(true)}
-              >
-                <Icon as={ListFilter} size={16} />
-                <Text>
-                  Filtros
-                  {activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-                </Text>
-              </Button>
-              <Button
-                className="flex-1 bg-brand-600 active:bg-brand-700"
-                onPress={handleAdd}
-              >
-                <Icon as={Plus} size={16} className="text-white" />
-                <Text>Nova Transação</Text>
-              </Button>
-            </View>
-          </View>
-        }
+        ListHeaderComponent={listHeader}
         ListEmptyComponent={
           <View className="items-center justify-center gap-2 py-8">
             {isLoading ? (
@@ -182,9 +267,9 @@ export const TransactionsScreen: React.FC = () => {
               {isLoadingMore ? (
                 <ActivityIndicator />
               ) : hasMore ? (
-                <Button variant="outline" onPress={() => void loadMore()}>
+                <Button variant="outline" onPress={loadMore}>
                   <Text>
-                    {filters.search.trim()
+                    {hasSearch
                       ? "Buscar nas próximas transações"
                       : "Carregar mais"}
                   </Text>
@@ -195,23 +280,31 @@ export const TransactionsScreen: React.FC = () => {
         }
       />
 
-      <TransactionFiltersDrawer
-        open={isFiltersOpen}
-        onOpenChange={setIsFiltersOpen}
-        categories={categories}
-        value={filters}
-        onApply={setFilters}
-      />
+      {shouldMountFilters ? (
+        <Suspense fallback={null}>
+          <TransactionFiltersDrawer
+            open={isFiltersOpen}
+            onOpenChange={setIsFiltersOpen}
+            categories={categories}
+            value={filters}
+            onApply={handleApplyFilters}
+          />
+        </Suspense>
+      ) : null}
 
-      <TransactionFormDrawer
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        transaction={editingTransaction}
-        categories={categories}
-        categoriesLoading={categoriesLoading}
-        categoriesError={categoriesError}
-        onSubmit={handleSubmit}
-      />
+      {shouldMountForm ? (
+        <Suspense fallback={null}>
+          <TransactionFormDrawer
+            open={isFormOpen}
+            onOpenChange={setIsFormOpen}
+            transaction={editingTransaction}
+            categories={categories}
+            categoriesLoading={categoriesLoading}
+            categoriesError={categoriesError}
+            onSubmit={handleSubmit}
+          />
+        </Suspense>
+      ) : null}
     </View>
   );
 };

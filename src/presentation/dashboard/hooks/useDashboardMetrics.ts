@@ -2,12 +2,7 @@ import { fromCents } from "@/src/lib/currency";
 import { Category } from "@domain/categories/entities/Category";
 import { Transaction } from "@domain/transactions/entities/Transaction";
 import {
-  buildMonthlyBalanceTrend,
-  calculateBalanceInCents,
-  getRecentTransactions,
-  groupMonthlyExpensesByCategory,
-  summarizeDay,
-  summarizeMonth,
+  computeDashboardMetrics,
   PeriodSummary,
 } from "@domain/transactions/services/dashboard-metrics";
 import {
@@ -83,53 +78,62 @@ export function useDashboardMetrics(
 ) {
   const now = useToday();
 
-  return useMemo(() => {
-    const categoryNames = new Map(
-      categories.map((category) => [category.uid, category.name]),
-    );
+  const categoryNames = useMemo(
+    () => new Map(categories.map((category) => [category.uid, category.name])),
+    [categories],
+  );
 
-    const expensesByCategory: ExpenseCategory[] =
-      groupMonthlyExpensesByCategory(
-        transactions,
-        now,
-        new Set(categoryNames.keys()),
-      ).map(
+  const metrics = useMemo(
+    () =>
+      computeDashboardMetrics(transactions, now, {
+        balanceMonths: BALANCE_MONTHS,
+        recentLimit: RECENT_TRANSACTIONS_LIMIT,
+        knownCategoryIds: new Set(categoryNames.keys()),
+      }),
+    [transactions, now, categoryNames],
+  );
+
+  const balanceTrend = useMemo<BalancePoint[]>(
+    () =>
+      metrics.balanceTrend.map(({ month, balanceInCents }) => ({
+        label: formatMonthLabel(month),
+        value: fromCents(balanceInCents),
+      })),
+    [metrics.balanceTrend],
+  );
+
+  const expensesByCategory = useMemo<ExpenseCategory[]>(
+    () =>
+      metrics.monthlyExpensesByCategory.map(
         ({ categoryId, totalInCents }, index) => ({
           id: categoryId,
           label: categoryNames.get(categoryId) ?? "Outros",
           total: fromCents(totalInCents),
           color: EXPENSE_COLORS[index % EXPENSE_COLORS.length],
         }),
-      );
+      ),
+    [metrics.monthlyExpensesByCategory, categoryNames],
+  );
 
-    const balanceTrend: BalancePoint[] = buildMonthlyBalanceTrend(
-      transactions,
-      now,
-      BALANCE_MONTHS,
-    ).map(({ month, balanceInCents }) => ({
-      label: formatMonthLabel(month),
-      value: fromCents(balanceInCents),
-    }));
-
-    const recentTransactions: RecentTransaction[] = getRecentTransactions(
-      transactions,
-      RECENT_TRANSACTIONS_LIMIT,
-    ).map((transaction) => ({
-      id: transaction.uid,
-      title: transaction.description || "Transação",
-      amount: fromCents(transaction.valueInCents),
-      transactionType: transaction.transactionType,
-      date:
-        toValidDate(transaction.createdAt)?.toLocaleDateString("pt-BR") ?? "",
-    }));
+  return useMemo(() => {
+    const recentTransactions: RecentTransaction[] =
+      metrics.recentTransactions.map((transaction) => ({
+        id: transaction.uid,
+        title: transaction.description || "Transação",
+        amount: fromCents(transaction.valueInCents),
+        transactionType: transaction.transactionType,
+        date:
+          toValidDate(transaction.createdAt)?.toLocaleDateString("pt-BR") ??
+          "",
+      }));
 
     return {
-      currentBalance: fromCents(calculateBalanceInCents(transactions)),
-      dailySummary: formatSummary(summarizeDay(transactions, now)),
-      monthlySummary: formatSummary(summarizeMonth(transactions, now)),
+      currentBalance: fromCents(metrics.balanceInCents),
+      dailySummary: formatSummary(metrics.daily),
+      monthlySummary: formatSummary(metrics.monthly),
       expensesByCategory,
       balanceTrend,
       recentTransactions,
     };
-  }, [transactions, categories, now]);
+  }, [metrics, expensesByCategory, balanceTrend]);
 }

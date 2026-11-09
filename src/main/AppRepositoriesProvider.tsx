@@ -4,6 +4,7 @@ import { FirebaseCategoryRepository } from "@infra/firebase/repositories/Firebas
 import { FirebaseSavingsGoalRepository } from "@infra/firebase/repositories/FirebaseSavingsGoalRepository";
 import { FirebaseTransactionRepository } from "@infra/firebase/repositories/FirebaseTransactionRepository";
 import { FirebaseReceiptStorage } from "@infra/firebase/storage/FirebaseReceiptStorage";
+import { ObservableTransactionRepository } from "@infra/reactive/ObservableTransactionRepository";
 import {
   Repositories,
   RepositoriesContext,
@@ -13,10 +14,14 @@ let defaultRepositories: Repositories | null = null;
 
 function getDefaultRepositories(): Repositories {
   if (!defaultRepositories) {
+    const transactions = new ObservableTransactionRepository(
+      new FirebaseTransactionRepository(),
+    );
     defaultRepositories = {
       auth: new FirebaseAuthRepository(),
       categories: new FirebaseCategoryRepository(),
-      transactions: new FirebaseTransactionRepository(),
+      transactions,
+      transactionChanges: transactions.changes$,
       savingsGoals: new FirebaseSavingsGoalRepository(),
       receiptStorage: new FirebaseReceiptStorage(),
     };

@@ -7,6 +7,7 @@ import { Separator } from "@/src/shared/ui/separator";
 import { Text } from "@/src/shared/ui/text";
 import { SavingsGoal } from "@domain/savings/entities/SavingsGoal";
 import { PiggyBank, Pencil, Plus, Trash2 } from "lucide-react-native";
+import { memo } from "react";
 import { Alert, View } from "react-native";
 import { SectionHeading } from "./section-heading";
 
@@ -18,7 +19,7 @@ type SavingsGoalsCardProps = {
   onDelete?: (goal: SavingsGoal) => void;
 };
 
-export function SavingsGoalsCard({
+export const SavingsGoalsCard = memo(function SavingsGoalsCard({
   title = "Minhas economias",
   goals,
   onAdd,
@@ -126,4 +127,4 @@ export function SavingsGoalsCard({
       </CardContent>
     </Card>
   );
-}
+});
