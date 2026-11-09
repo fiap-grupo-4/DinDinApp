@@ -8,6 +8,7 @@ import {
   type SavingsGoalFormData,
 } from "@/src/lib/schemas/savings";
 import { cn } from "@/src/lib/utils";
+import { getSafeErrorMessage } from "@lib/error-messages";
 import { Button } from "@/src/shared/ui/button";
 import {
   Drawer,
@@ -100,9 +101,7 @@ export function SavingsGoalFormDrawer({
       onOpenChange(false);
     } catch (err) {
       setSubmitError(
-        err instanceof Error
-          ? err.message
-          : "Não foi possível salvar sua economia.",
+        getSafeErrorMessage(err, "Não foi possível salvar sua economia."),
       );
     } finally {
       setIsSubmitting(false);
@@ -216,7 +215,7 @@ export function SavingsGoalFormDrawer({
 
         <DrawerFooter>
           <Button
-            onPress={handleSubmit(handleFormSubmit)}
+            onPress={() => void handleSubmit(handleFormSubmit)()}
             disabled={isSubmitting}
             className="bg-brand-600 active:bg-brand-700"
           >

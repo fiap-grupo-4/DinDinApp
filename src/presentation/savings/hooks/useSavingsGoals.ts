@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getSafeErrorMessage } from "@lib/error-messages";
 import { useAuthState } from "@presentation/auth/providers/AuthProvider";
 import { useRepositories } from "@presentation/providers/RepositoriesContext";
 import {
@@ -44,9 +45,7 @@ export function useSavingsGoals() {
     } catch (err) {
       if (requestVersion !== requestVersionRef.current) return;
       setError(
-        err instanceof Error
-          ? err.message
-          : "Não foi possível carregar suas economias.",
+        getSafeErrorMessage(err, "Não foi possível carregar suas economias."),
       );
     } finally {
       if (requestVersion === requestVersionRef.current) {

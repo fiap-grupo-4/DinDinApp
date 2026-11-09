@@ -68,7 +68,7 @@ export default function ForgotPasswordScreen() {
                   autoComplete="email"
                   textContentType="emailAddress"
                   returnKeyType="done"
-                  onSubmitEditing={handleSubmit(onSubmit)}
+                  onSubmitEditing={() => void handleSubmit(onSubmit)()}
                   editable={!isPending}
                   aria-invalid={!!errors.email}
                   className={cn(errors.email && "border-destructive")}
@@ -86,7 +86,7 @@ export default function ForgotPasswordScreen() {
 
           <View className="gap-4 mb-12">
             <Button
-              onPress={handleSubmit(onSubmit)}
+              onPress={() => void handleSubmit(onSubmit)()}
               disabled={isPending}
               className="bg-brand-600 active:bg-brand-700"
             >

@@ -9,9 +9,11 @@ import {
   where,
   orderBy,
   getDocs,
+  limit,
 } from "firebase/firestore";
 import { db } from "@infra/firebase";
 import { isPermissionDenied } from "@infra/firebase/errors";
+import { logger } from "../../logging/logger";
 import { ISavingsGoalRepository } from "@domain/savings/repositories/ISavingsGoalRepository";
 import {
   SavingsGoal,
@@ -45,7 +47,7 @@ export class FirebaseSavingsGoalRepository implements ISavingsGoalRepository {
     } catch (error) {
       if (isPermissionDenied(error)) {
         // Também cobre sessão expirada ou regra quebrada; fica no log.
-        console.warn(`Leitura negada em ${COLLECTION}/${id}:`, error);
+        logger.warn("firestore.savings_goal_read_denied", error);
         return null;
       }
       throw error;
@@ -62,6 +64,7 @@ export class FirebaseSavingsGoalRepository implements ISavingsGoalRepository {
       collection(db, COLLECTION),
       where("userId", "==", userId),
       orderBy("createdAt", "desc"),
+      limit(100),
     );
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => ({

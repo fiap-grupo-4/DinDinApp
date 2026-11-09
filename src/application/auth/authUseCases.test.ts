@@ -3,9 +3,13 @@ import { ValidationError } from "@domain/shared/errors";
 import { FakeAuthRepository } from "@/src/test/fakes/FakeAuthRepository";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  disableTotp,
+  finishTotpEnrollment,
   forgotPassword,
   getProfile,
+  resolveTotpSignIn,
   register,
+  startTotpEnrollment,
   signIn,
   signOut,
 } from "./authUseCases";
@@ -16,8 +20,8 @@ const request: CreateUserRequest = {
   fullName: "Maria",
   email: "maria@x.com",
   birthday: "2000-01-01",
-  password: "123456",
-  confirmPassword: "123456",
+  password: "maria1234",
+  confirmPassword: "maria1234",
 };
 
 beforeEach(() => {
@@ -72,6 +76,35 @@ describe("forgotPassword", () => {
       ValidationError,
     );
     expect(repo.calls.forgotPassword).toHaveLength(0);
+  });
+});
+
+describe("TOTP", () => {
+  it("repassa código válido e rejeita código inválido", async () => {
+    await resolveTotpSignIn(repo, "123456");
+    expect(repo.calls.resolveTotpSignIn).toEqual(["123456"]);
+
+    await expect(resolveTotpSignIn(repo, "12345")).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+  });
+
+  it("inicia e confirma enrollment TOTP", async () => {
+    await expect(startTotpEnrollment(repo)).resolves.toMatchObject({
+      secretKey: "TESTSECRET",
+    });
+    await finishTotpEnrollment(repo, "123456");
+    expect(repo.calls.finishTotpEnrollment).toEqual(["123456"]);
+  });
+
+  it("exige senha e código antes de desativar TOTP", async () => {
+    await disableTotp(repo, "password", "123456");
+    expect(repo.calls.disableTotp).toEqual([
+      { password: "password", code: "123456" },
+    ]);
+    await expect(disableTotp(repo, "", "123456")).rejects.toBeInstanceOf(
+      ValidationError,
+    );
   });
 });
 

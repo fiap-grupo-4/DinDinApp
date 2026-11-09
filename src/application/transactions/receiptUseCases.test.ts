@@ -58,7 +58,7 @@ describe("saveWithReceipt", () => {
         Promise.reject(failure),
       ),
     ).rejects.toBe(failure);
-    expect(storage.calls.remove).toEqual(["https://storage.test/receipts/u1/1"]);
+    expect(storage.calls.remove).toEqual(["receipts/u1/1-test.jpg"]);
     expect(storage.files.size).toBe(0);
   });
 

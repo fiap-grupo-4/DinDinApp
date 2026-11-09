@@ -4,6 +4,10 @@ import { getFirestore } from "firebase-admin/firestore";
 
 const projectId = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID;
 const userId = process.env.SEED_USER_ID;
+const allowedProjectId = process.env.SEED_ALLOWED_PROJECT_ID;
+const confirmation = process.argv.find((arg) =>
+  arg.startsWith("--confirm-project="),
+);
 
 if (!projectId) {
   throw new Error("Informe EXPO_PUBLIC_FIREBASE_PROJECT_ID no arquivo .env.");
@@ -11,6 +15,18 @@ if (!projectId) {
 
 if (!userId) {
   throw new Error("Informe SEED_USER_ID no arquivo .env.");
+}
+
+if (!allowedProjectId || allowedProjectId !== projectId) {
+  throw new Error(
+    "SEED_ALLOWED_PROJECT_ID deve corresponder exatamente ao projeto permitido.",
+  );
+}
+
+if (confirmation !== `--confirm-project=${projectId}`) {
+  throw new Error(
+    `Confirme o projeto com --confirm-project=${projectId} antes de criar os dados.`,
+  );
 }
 
 initializeApp({
