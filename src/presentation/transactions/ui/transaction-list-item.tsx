@@ -6,6 +6,7 @@ import { Text } from "@/src/shared/ui/text";
 import { Category } from "@domain/categories/entities/Category";
 import { Transaction } from "@domain/transactions/entities/Transaction";
 import { Pencil, Trash2 } from "lucide-react-native";
+import { memo } from "react";
 import { View } from "react-native";
 
 export type TransactionWithCategory = Transaction & { category?: Category };
@@ -22,7 +23,7 @@ function formatDate(isoDate: string): string {
   return date.toLocaleDateString("pt-BR");
 }
 
-export function TransactionListItem({
+export const TransactionListItem = memo(function TransactionListItem({
   transaction,
   onEdit,
   onDelete,
@@ -80,6 +81,6 @@ export function TransactionListItem({
       </View>
     </View>
   );
-}
+});
 
 export default TransactionListItem;
