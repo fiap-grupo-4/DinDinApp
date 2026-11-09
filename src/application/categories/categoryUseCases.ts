@@ -1,10 +1,10 @@
-import { NotFoundError, ValidationError } from "@domain/shared/errors";
+import { NotFoundError } from "@domain/shared/errors";
 import { ICategoryRepository } from "@domain/categories/repositories/ICategoryRepository";
 import {
   Category,
   CreateCategoryDTO,
 } from "@domain/categories/entities/Category";
-import { requireUserId } from "../validation/validation";
+import { requireText, requireUserId } from "../validation/validation";
 
 export async function listCategories(
   repository: ICategoryRepository,
@@ -32,7 +32,11 @@ export async function createCategory(
   data: CreateCategoryDTO,
 ): Promise<Category> {
   requireUserId(data.userId);
-  const name = data.name.trim();
-  if (!name) throw new ValidationError("Informe o nome da categoria.");
+  const name = requireText(
+    data.name,
+    1,
+    60,
+    "O nome da categoria deve ter entre 1 e 60 caracteres.",
+  );
   return repository.create({ ...data, name });
 }

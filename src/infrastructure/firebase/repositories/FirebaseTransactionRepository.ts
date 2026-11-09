@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@infra/firebase";
 import { isPermissionDenied } from "@infra/firebase/errors";
+import { logger } from "../../logging/logger";
 import {
   ITransactionRepository,
   PaginatedResult,
@@ -77,7 +78,7 @@ export class FirebaseTransactionRepository implements ITransactionRepository {
     } catch (error) {
       if (isPermissionDenied(error)) {
         // Também cobre sessão expirada ou regra quebrada; fica no log.
-        console.warn(`Leitura negada em ${COLLECTION}/${id}:`, error);
+        logger.warn("firestore.transaction_read_denied", error);
         return null;
       }
       throw error;

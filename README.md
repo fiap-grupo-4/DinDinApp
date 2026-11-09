@@ -8,20 +8,26 @@ O projeto foi reorganizado com uma estrutura baseada em Domain-Driven Design (DD
 
 ## Tecnologias
 
-- [Expo](https://expo.dev/) ~54
-- [React Native](https://reactnative.dev/) 0.81
-- [TypeScript](https://www.typescriptlang.org/)
+- [Expo](https://expo.dev/) SDK 58
+- [React Native](https://reactnative.dev/) 0.88
+- [React](https://react.dev/) 19.3
+- [Expo Router](https://docs.expo.dev/router/introduction/) ~58
+- [TypeScript](https://www.typescriptlang.org/) ~6.0
 - [Biome](https://biomejs.dev/) 2.2.3 — lint do código em `src/`
-- [NativeWind](https://www.nativewind.dev/) (Tailwind CSS para React Native)
-- [Firebase](https://firebase.google.com/) (Auth e Firestore)
+- [NativeWind](https://www.nativewind.dev/) 4 (Tailwind CSS para React Native)
+- [Firebase](https://firebase.google.com/) 12 (Auth com MFA TOTP, Firestore e Cloud Storage)
 - [React Native Reusables](https://rnr-docs.vercel.app/) — componentes baseados em `@rn-primitives`
 - [Lucide React Native](https://lucide.dev/) — ícones
+- [Vitest](https://vitest.dev/) 3 — testes unitários e testes das Security Rules
 
 ## Pré-requisitos
 
 - [Node.js](https://nodejs.org/) 18 ou superior
 - npm ou yarn
-- [Expo Go](https://expo.dev/go) no dispositivo físico, ou emulador Android/iOS configurado
+- [Expo Go](https://expo.dev/go) (SDK 58) no dispositivo físico, ou emulador Android/iOS configurado
+- [Java](https://adoptium.net/) 17 ou superior — apenas para os testes das Security Rules no Emulator Suite
+- [Firebase CLI](https://firebase.google.com/docs/cli) — para publicar regras e rodar o Emulator Suite
+- [Google Cloud CLI](https://cloud.google.com/sdk) autenticado — apenas para os scripts administrativos (seed e MFA TOTP)
 
 ## Instalação
 
@@ -59,7 +65,7 @@ EXPO_PUBLIC_FIREBASE_APP_ID=
 
 ### Firebase Security Rules
 
-As regras do Firestore e do Storage, além dos índices, ficam junto da infraestrutura compartilhada em `src/infrastructure/firebase/`. Elas permitem que cada usuário autenticado acesse somente os próprios dados e comprovantes. O `firebase.json` permanece na raiz, conforme a convenção da Firebase CLI, e aponta para esses arquivos.
+As regras do Firestore e do Storage, além dos índices, ficam junto da infraestrutura compartilhada em `src/infrastructure/firebase/`. Elas permitem que cada usuário autenticado acesse somente os próprios dados e comprovantes. As regras do Firestore também validam os campos de cada documento (chaves permitidas, tipos e limites de tamanho), limitam consultas a 100 documentos e exigem e-mail verificado (`email_verified`) para criar, atualizar e excluir categorias, transações e metas. O `firebase.json` permanece na raiz, conforme a convenção da Firebase CLI, e aponta para esses arquivos.
 
 Antes de usar categorias, transações ou metas de economia, publique as regras e os índices no projeto Firebase:
 
@@ -77,7 +83,20 @@ Para usar comprovantes, habilite o Cloud Storage no Console do Firebase, configu
 npx firebase-tools deploy --only storage
 ```
 
-Os comprovantes são aceitos somente como imagens de até 5 MB e ficam em `receipts/{userId}/`. As operações feitas pelo SDK exigem que o usuário autenticado seja o proprietário; as URLs de download geradas devem ser tratadas como dados privados e não devem ser compartilhadas.
+Os comprovantes são aceitos somente como imagens JPEG, PNG, WebP ou HEIC de até 5 MB e ficam em `receipts/{userId}/`. As operações feitas pelo SDK exigem que o usuário autenticado seja o proprietário; as URLs de download geradas devem ser tratadas como dados privados e não devem ser compartilhadas.
+
+### Autenticação e MFA TOTP
+
+O cadastro envia um e-mail de verificação e as regras do Firestore só liberam as escritas financeiras depois que o usuário confirma o endereço. O app também suporta autenticação em duas etapas com TOTP (aplicativo autenticador), sem uso de SMS.
+
+O TOTP exige que o projeto Firebase tenha passado pelo upgrade para o Identity Platform — no plano Spark, o limite passa a ser de 3.000 usuários ativos por dia, sem cobrança. A ativação é feita por projeto com um script administrativo protegido por confirmação explícita:
+
+```bash
+gcloud auth application-default login
+npm run firebase:enable-totp-mfa -- --confirm-project=<project-id>
+```
+
+O script habilita apenas o provedor TOTP; nenhum provedor de SMS é ativado.
 
 ## Executando o app
 
@@ -125,7 +144,9 @@ din-din-app/
 │   ├── lib/                 # Utilidades de apresentação (moeda, schemas de formulário, toast)
 │   ├── shared/ui/           # Componentes de UI reutilizáveis
 │   └── styles/              # Estilos globais e tokens
+├── tests/rules/             # Testes das Security Rules (Emulator Suite)
 ├── vitest.config.ts
+├── vitest.rules.config.ts
 └── biome.json
 ```
 
@@ -155,6 +176,12 @@ Os serviços do domínio e os casos de uso têm testes unitários com [Vitest](h
 
 ```bash
 npm test
+```
+
+As regras do Firestore e do Storage têm testes dedicados em `tests/rules/`, executados contra o Emulator Suite (requer Java instalado):
+
+```bash
+npm run test:rules
 ```
 
 ## Lint e qualidade
@@ -193,23 +220,26 @@ npm run check-all
 | `npm run format`      | Aplica correções de lint do Biome       |
 | `npm run check-types` | Verifica os tipos com TypeScript        |
 | `npm test`            | Roda os testes unitários (Vitest)       |
+| `npm run test:rules`  | Roda os testes das Security Rules no Emulator Suite |
 | `npm run check-all`   | Format + lint + type-check + testes     |
 | `npm run generate:mocks` | Cria categorias e transações de exemplo no Firestore |
+| `npm run firebase:enable-totp-mfa` | Habilita MFA TOTP no projeto Firebase (Admin SDK) |
 
 ### Gerando dados de exemplo
 
-O seed carrega automaticamente o arquivo `.env`. Informe o UID de um usuário já cadastrado:
+O seed carrega automaticamente o arquivo `.env`. Informe o UID de um usuário já cadastrado e o projeto autorizado:
 
 ```env
 EXPO_PUBLIC_FIREBASE_PROJECT_ID=seu-project-id
 SEED_USER_ID=uid-do-usuario
+SEED_ALLOWED_PROJECT_ID=seu-project-id
 ```
 
-O script usa credenciais administrativas locais. Autentique o Application Default Credentials e execute o comando:
+O script usa credenciais administrativas locais e exige confirmação explícita do projeto, para evitar gravações acidentais. Autentique o Application Default Credentials e execute:
 
 ```bash
 gcloud auth application-default login
-npm run generate:mocks
+npm run generate:mocks -- --confirm-project=seu-project-id
 ```
 
 ## Licença

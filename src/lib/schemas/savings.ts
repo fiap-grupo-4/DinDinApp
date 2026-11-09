@@ -14,6 +14,7 @@ export const savingsGoalSchema = z
     title: z
       .string()
       .trim()
+      .max(80, 'O título deve ter no máximo 80 caracteres.')
       .min(1, 'O campo "Título" é obrigatório.')
       .min(3, 'O campo "Título" deve ter no mínimo 3 caracteres.'),
     currentValue: moneyFieldSchema,

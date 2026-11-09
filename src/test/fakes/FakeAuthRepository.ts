@@ -3,6 +3,7 @@ import {
   AuthState,
   AuthUser,
   IAuthRepository,
+  TotpEnrollment,
 } from "@domain/auth/repositories/IAuthRepository";
 
 export class FakeAuthRepository implements IAuthRepository {
@@ -13,6 +14,12 @@ export class FakeAuthRepository implements IAuthRepository {
     register: [] as CreateUserRequest[],
     forgotPassword: [] as string[],
     getProfile: [] as string[],
+    resolveTotpSignIn: [] as string[],
+    sendVerificationEmail: 0,
+    reloadCurrentUser: 0,
+    startTotpEnrollment: 0,
+    finishTotpEnrollment: [] as string[],
+    disableTotp: [] as { password: string; code: string }[],
   };
 
   seed(...users: User[]): void {
@@ -23,7 +30,24 @@ export class FakeAuthRepository implements IAuthRepository {
 
   async signIn(email: string, password: string): Promise<AuthUser> {
     this.calls.signIn.push({ email, password });
-    return { uid: "user-1", email, displayName: null };
+    return {
+      uid: "user-1",
+      email,
+      displayName: null,
+      emailVerified: true,
+      hasTotp: false,
+    };
+  }
+
+  async resolveTotpSignIn(code: string): Promise<AuthUser> {
+    this.calls.resolveTotpSignIn.push(code);
+    return {
+      uid: "user-1",
+      email: "user@example.com",
+      displayName: null,
+      emailVerified: true,
+      hasTotp: true,
+    };
   }
 
   async signOut(): Promise<void> {
@@ -32,11 +56,39 @@ export class FakeAuthRepository implements IAuthRepository {
 
   async register(data: CreateUserRequest): Promise<AuthUser> {
     this.calls.register.push(data);
-    return { uid: "user-1", email: data.email, displayName: data.fullName };
+    return {
+      uid: "user-1",
+      email: data.email,
+      displayName: data.fullName,
+      emailVerified: false,
+      hasTotp: false,
+    };
   }
 
   async forgotPassword(email: string): Promise<void> {
     this.calls.forgotPassword.push(email);
+  }
+
+  async sendVerificationEmail(): Promise<void> {
+    this.calls.sendVerificationEmail += 1;
+  }
+
+  async reloadCurrentUser(): Promise<AuthUser | null> {
+    this.calls.reloadCurrentUser += 1;
+    return null;
+  }
+
+  async startTotpEnrollment(): Promise<TotpEnrollment> {
+    this.calls.startTotpEnrollment += 1;
+    return { secretKey: "TESTSECRET" };
+  }
+
+  async finishTotpEnrollment(code: string): Promise<void> {
+    this.calls.finishTotpEnrollment.push(code);
+  }
+
+  async disableTotp(password: string, code: string): Promise<void> {
+    this.calls.disableTotp.push({ password, code });
   }
 
   async getProfile(uid: string): Promise<User | null> {

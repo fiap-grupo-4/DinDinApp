@@ -8,6 +8,7 @@ export const transactionFormSchema = z
     description: z
       .string()
       .trim()
+      .max(200, "O nome deve ter no máximo 200 caracteres.")
       .min(1, 'O campo "Nome" é obrigatório.'),
     transactionType: z.enum(["income", "outcome"], {
       message: "Selecione o tipo da transação.",

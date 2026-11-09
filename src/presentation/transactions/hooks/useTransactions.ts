@@ -24,6 +24,7 @@ import {
   getDayRange,
 } from "@domain/transactions/services/transaction-filters";
 import { useRepositories } from "@presentation/providers/RepositoriesContext";
+import { getSafeErrorMessage } from "@lib/error-messages";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   EMPTY,
@@ -120,7 +121,7 @@ function reduceTransactionList(
 }
 
 function toErrorMessage(err: unknown, fallback: string): string {
-  return err instanceof Error ? err.message : fallback;
+  return getSafeErrorMessage(err, fallback);
 }
 
 export function useTransactions(

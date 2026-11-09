@@ -56,7 +56,7 @@ describe("createSavingsGoal", () => {
   it("rejeita título curto", async () => {
     await expect(
       createSavingsGoal(repo, { ...base, title: " ab " }),
-    ).rejects.toThrow('O campo "Título" deve ter no mínimo 3 caracteres.');
+    ).rejects.toThrow('O campo "Título" deve ter entre 3 e 80 caracteres.');
     expect(repo.writeCount).toBe(0);
   });
 

@@ -14,6 +14,7 @@ import { useDashboardMetrics } from "@presentation/dashboard/hooks/useDashboardM
 import type { RecentTransaction } from "@presentation/dashboard/models/dashboard-metrics";
 import { useSavingsGoals } from "@presentation/savings/hooks/useSavingsGoals";
 import { useTransactions } from "@presentation/transactions/hooks/useTransactions";
+import { getSafeErrorMessage } from "@lib/error-messages";
 import { EMPTY_TRANSACTION_FILTERS } from "@domain/transactions/entities/TransactionFilters";
 import { useRouter } from "expo-router";
 import { Suspense, useCallback, useState } from "react";
@@ -108,6 +109,10 @@ export function DashboardScreen() {
       ),
     [removeTransaction],
   );
+  
+  function showDeleteError(err: unknown, fallback: string) {
+    toast.error(getSafeErrorMessage(err, fallback));
+  }
 
   const handleAddGoal = useCallback(() => {
     setEditingGoal(null);

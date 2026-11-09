@@ -1,10 +1,22 @@
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
   updateProfile,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
+  sendEmailVerification,
+  reload,
+  getIdToken,
+  getMultiFactorResolver,
+  multiFactor,
+  TotpMultiFactorGenerator,
+  type MultiFactorError,
+  type MultiFactorResolver,
+  type TotpSecret,
   signOut as firebaseSignOut,
-  onAuthStateChanged,
+  onIdTokenChanged,
   User as FirebaseUser,
 } from "firebase/auth";
 import {
@@ -21,12 +33,19 @@ import {
   AuthState,
 } from "@domain/auth/repositories/IAuthRepository";
 import { CreateUserRequest, User } from "@domain/auth/entities/User";
+import { TotpChallengeRequiredError } from "@domain/auth/errors";
+import type { TotpEnrollment } from "@domain/auth/repositories/IAuthRepository";
+import { logger } from "../../logging/logger";
 
 function mapAuthUser(user: FirebaseUser): AuthUser {
   return {
     uid: user.uid,
     email: user.email ?? "",
     displayName: user.displayName ?? null,
+    emailVerified: user.emailVerified,
+    hasTotp: multiFactor(user).enrolledFactors.some(
+      (factor) => factor.factorId === TotpMultiFactorGenerator.FACTOR_ID,
+    ),
   };
 }
 
@@ -54,16 +73,60 @@ function mapProfile(uid: string, data: Record<string, unknown>): User {
 }
 
 export class FirebaseAuthRepository implements IAuthRepository {
+  private totpResolver: MultiFactorResolver | null = null;
+  private totpSecret: TotpSecret | null = null;
+
   async signIn(email: string, password: string): Promise<AuthUser> {
-    const userCredential = await signInWithEmailAndPassword(
-      auth,
-      email,
-      password,
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
+      this.totpResolver = null;
+      return mapAuthUser(userCredential.user);
+    } catch (error) {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        (error as { code?: string }).code === "auth/multi-factor-auth-required"
+      ) {
+        const resolver = getMultiFactorResolver(auth, error as MultiFactorError);
+        if (
+          resolver.hints.some(
+            (hint) => hint.factorId === TotpMultiFactorGenerator.FACTOR_ID,
+          )
+        ) {
+          this.totpResolver = resolver;
+          throw new TotpChallengeRequiredError();
+        }
+      }
+      throw error;
+    }
+  }
+
+  async resolveTotpSignIn(code: string): Promise<AuthUser> {
+    if (!this.totpResolver || !/^\d{6}$/.test(code)) {
+      throw new Error("Código de verificação inválido.");
+    }
+    const hint = this.totpResolver.hints.find(
+      (factor) => factor.factorId === TotpMultiFactorGenerator.FACTOR_ID,
     );
-    return mapAuthUser(userCredential.user);
+    if (!hint) throw new Error("Fator TOTP não disponível.");
+
+    const assertion = TotpMultiFactorGenerator.assertionForSignIn(
+      hint.uid,
+      code,
+    );
+    const credential = await this.totpResolver.resolveSignIn(assertion);
+    this.totpResolver = null;
+    return mapAuthUser(credential.user);
   }
 
   async signOut(): Promise<void> {
+    this.totpResolver = null;
+    this.totpSecret = null;
     await firebaseSignOut(auth);
   }
 
@@ -77,12 +140,7 @@ export class FirebaseAuthRepository implements IAuthRepository {
 
     try {
       await updateProfile(user, { displayName: data.fullName });
-    } catch (err) {
-      console.error("Falha ao atualizar o perfil no Auth:", err);
-      throw err;
-    }
-
-    try {
+      await sendEmailVerification(user);
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         email: data.email,
@@ -90,8 +148,11 @@ export class FirebaseAuthRepository implements IAuthRepository {
         birthday: data.birthday,
         createdAt: serverTimestamp(),
       });
-    } catch (err) {
-      console.error("Falha ao salvar usuário no Firestore:", err);
+    } catch (error) {
+      await deleteUser(user).catch((rollbackError) => {
+        logger.error("auth.registration_rollback_failed", rollbackError);
+      });
+      throw error;
     }
 
     return mapAuthUser(user);
@@ -99,6 +160,86 @@ export class FirebaseAuthRepository implements IAuthRepository {
 
   async forgotPassword(email: string): Promise<void> {
     await sendPasswordResetEmail(auth, email);
+  }
+
+  async sendVerificationEmail(): Promise<void> {
+    if (!auth.currentUser) throw new Error("Sessão não encontrada.");
+    await sendEmailVerification(auth.currentUser);
+  }
+
+  async reloadCurrentUser(): Promise<AuthUser | null> {
+    if (!auth.currentUser) return null;
+    await reload(auth.currentUser);
+    await getIdToken(auth.currentUser, true);
+    return mapAuthUser(auth.currentUser);
+  }
+
+  async startTotpEnrollment(): Promise<TotpEnrollment> {
+    const user = auth.currentUser;
+    if (!user?.emailVerified) {
+      throw new Error("Verifique seu e-mail antes de ativar o MFA.");
+    }
+    const session = await multiFactor(user).getSession();
+    const secret = await TotpMultiFactorGenerator.generateSecret(session);
+    this.totpSecret = secret;
+    return { secretKey: secret.secretKey };
+  }
+
+  async finishTotpEnrollment(code: string): Promise<void> {
+    const user = auth.currentUser;
+    if (!user || !this.totpSecret || !/^\d{6}$/.test(code)) {
+      throw new Error("Código de verificação inválido.");
+    }
+    const assertion = TotpMultiFactorGenerator.assertionForEnrollment(
+      this.totpSecret,
+      code,
+    );
+    await multiFactor(user).enroll(assertion, "DinDinApp");
+    this.totpSecret = null;
+  }
+
+  async disableTotp(password: string, code: string): Promise<void> {
+    const user = auth.currentUser;
+    const factor = user
+      ? multiFactor(user).enrolledFactors.find(
+          (item) => item.factorId === TotpMultiFactorGenerator.FACTOR_ID,
+        )
+      : undefined;
+    if (!user?.email || !factor || !/^\d{6}$/.test(code)) {
+      throw new Error("Não foi possível validar a autenticação TOTP.");
+    }
+
+    try {
+      await reauthenticateWithCredential(
+        user,
+        EmailAuthProvider.credential(user.email, password),
+      );
+    } catch (error) {
+      if (
+        typeof error !== "object" ||
+        error === null ||
+        !("code" in error) ||
+        (error as { code?: string }).code !==
+          "auth/multi-factor-auth-required"
+      ) {
+        throw error;
+      }
+
+      const resolver = getMultiFactorResolver(auth, error as MultiFactorError);
+      const hint = resolver.hints.find(
+        (item) => item.factorId === TotpMultiFactorGenerator.FACTOR_ID,
+      );
+      if (!hint) throw error;
+      await resolver.resolveSignIn(
+        TotpMultiFactorGenerator.assertionForSignIn(hint.uid, code),
+      );
+    }
+
+    const currentUser = auth.currentUser;
+    if (!currentUser || currentUser.uid !== user.uid) {
+      throw new Error("A sessão da conta mudou durante a operação.");
+    }
+    await multiFactor(currentUser).unenroll(factor.uid);
   }
 
   async getProfile(uid: string): Promise<User | null> {
@@ -110,7 +251,7 @@ export class FirebaseAuthRepository implements IAuthRepository {
   }
 
   onAuthStateChanged(callback: (state: AuthState) => void): () => void {
-    return onAuthStateChanged(auth, (user: FirebaseUser | null) => {
+    return onIdTokenChanged(auth, (user: FirebaseUser | null) => {
       callback(
         user != null
           ? { user: mapAuthUser(user), loading: false }

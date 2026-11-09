@@ -11,8 +11,16 @@ function createAuth() {
     return initializeAuth(app, {
       persistence: [indexedDBLocalPersistence, browserLocalPersistence],
     });
-  } catch {
-    return getAuth(app);
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: string }).code === "auth/already-initialized"
+    ) {
+      return getAuth(app);
+    }
+    throw error;
   }
 }
 

@@ -3,7 +3,11 @@ import { useRouter, useSegments } from "expo-router";
 import { AuthState } from "@domain/auth/repositories/IAuthRepository";
 import { useRepositories } from "@presentation/providers/RepositoriesContext";
 
-const AuthContext = createContext<AuthState | undefined>(undefined);
+type AuthContextValue = AuthState & {
+  refreshUser: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -19,6 +23,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     );
     return () => unsub();
   }, [repository]);
+
+  const refreshUser = async () => {
+    const user = await repository.reloadCurrentUser();
+    setState({ user, loading: false });
+  };
 
   useEffect(() => {
     if (state.loading) return;
@@ -37,12 +46,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
-    if (state.user && inAuthGroup) {
+    if (!state.user && inAuthGroup && (segments as string[])[1] === "verify-email") {
+      router.replace("/auth/login");
+      return;
+    }
+
+    if (state.user && !state.user.emailVerified) {
+      if ((segments as string[])[1] !== "verify-email") {
+        router.replace("/auth/verify-email");
+      }
+      return;
+    }
+
+    if (state.user?.emailVerified && inAuthGroup) {
       router.replace("/dashboard");
     }
   }, [state.loading, state.user, segments, router]);
 
-  return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ ...state, refreshUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export function useAuthState() {
