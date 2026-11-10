@@ -20,9 +20,9 @@ import {
 import { Text } from "@/src/shared/ui/text";
 import { Category } from "@domain/categories/entities/Category";
 import {
-  EMPTY_TRANSACTION_FILTERS,
-  TransactionFiltersValue,
-} from "@domain/transactions/entities/TransactionFilters";
+  type TransactionFiltersDraft,
+  useTransactionFiltersStore,
+} from "@presentation/transactions/stores/transactionFiltersStore";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Calendar } from "lucide-react-native";
 import { useEffect, useState } from "react";
@@ -37,23 +37,37 @@ type TransactionFiltersDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   categories: Category[];
-  value: TransactionFiltersValue;
-  onApply: (value: TransactionFiltersValue) => void;
 };
 
 export function TransactionFiltersDrawer({
   open,
   onOpenChange,
   categories,
-  value,
-  onApply,
 }: TransactionFiltersDrawerProps) {
-  const [draft, setDraft] = useState<TransactionFiltersValue>(value);
+  const filters = useTransactionFiltersStore((state) => state.filters);
+  const applyFilters = useTransactionFiltersStore(
+    (state) => state.applyFilters,
+  );
+  const clearFilters = useTransactionFiltersStore(
+    (state) => state.clearFilters,
+  );
+
+  const [draft, setDraft] = useState<TransactionFiltersDraft>(() => ({
+    transactionType: filters.transactionType,
+    categoryId: filters.categoryId,
+    date: filters.date,
+  }));
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
-    if (open) setDraft(value);
-  }, [open, value]);
+    if (open) {
+      setDraft({
+        transactionType: filters.transactionType,
+        categoryId: filters.categoryId,
+        date: filters.date,
+      });
+    }
+  }, [open, filters.transactionType, filters.categoryId, filters.date]);
 
   const selectedType = TYPE_OPTIONS.find(
     (option) => option.value === draft.transactionType,
@@ -63,14 +77,13 @@ export function TransactionFiltersDrawer({
   );
 
   function handleClear() {
-    const cleared: TransactionFiltersValue = EMPTY_TRANSACTION_FILTERS;
-    setDraft(cleared);
-    onApply(cleared);
+    setDraft({});
+    clearFilters();
     onOpenChange(false);
   }
 
   function handleApply() {
-    onApply(draft);
+    applyFilters(draft);
     onOpenChange(false);
   }
 

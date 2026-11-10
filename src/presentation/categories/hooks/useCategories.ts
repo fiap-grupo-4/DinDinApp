@@ -1,57 +1,44 @@
-import { useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSafeErrorMessage } from "@lib/error-messages";
 import { useRepositories } from "@presentation/providers/RepositoriesContext";
 import {
-  createCategory,
-  listCategories,
-} from "@application/categories/categoryUseCases";
+  categoriesQueryOptions,
+  createCategoryMutationOptions,
+} from "@presentation/categories/queries/categoryQueries";
 import {
   Category,
   CreateCategoryDTO,
 } from "@domain/categories/entities/Category";
 
+const EMPTY: Category[] = [];
+
 export function useCategories(userId: string) {
   const { categories: repository } = useRepositories();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!userId) {
-      setCategories([]);
-      setLoading(false);
-      setError(null);
-      return;
-    }
+  const query = useQuery(categoriesQueryOptions(repository, userId));
+  const mutation = useMutation(
+    createCategoryMutationOptions(queryClient, repository),
+  );
+  const { mutateAsync } = mutation;
 
-    setLoading(true);
-    setError(null);
-    listCategories(repository, userId)
-      .then(setCategories)
-      .catch((err) =>
-        setError(
-          getSafeErrorMessage(err, "Não foi possível carregar categorias."),
-        ),
-      )
-      .finally(() => setLoading(false));
-  }, [repository, userId]);
+  const addCategory = useCallback(
+    (data: CreateCategoryDTO) => mutateAsync(data),
+    [mutateAsync],
+  );
 
-  const addCategory = async (data: CreateCategoryDTO) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const category = await createCategory(repository, data);
-      setCategories((prev) => [...prev, category]);
-      return category;
-    } catch (err) {
-      setError(
-        getSafeErrorMessage(err, "Não foi possível criar a categoria."),
-      );
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+  const queryError = query.error
+    ? getSafeErrorMessage(query.error, "Não foi possível carregar categorias.")
+    : null;
+  const mutationError = mutation.error
+    ? getSafeErrorMessage(mutation.error, "Não foi possível criar a categoria.")
+    : null;
+
+  return {
+    categories: query.data ?? EMPTY,
+    loading: (!!userId && query.isPending) || mutation.isPending,
+    error: mutationError ?? queryError,
+    addCategory,
   };
-
-  return { categories, loading, error, addCategory };
 }

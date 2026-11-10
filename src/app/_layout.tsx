@@ -8,6 +8,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Toaster } from "@/src/lib/sonner";
 import { AuthProvider } from "@presentation/auth/providers/AuthProvider";
+import { SessionStateReset } from "@presentation/providers/SessionStateReset";
+import { AppQueryProvider } from "@main/AppQueryProvider";
 import { AppRepositoriesProvider } from "@main/AppRepositoriesProvider";
 import { Button } from "@/src/shared/ui/button";
 import { Text } from "@/src/shared/ui/text";
@@ -20,13 +22,16 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AppRepositoriesProvider>
-          <AuthProvider>
-            <Stack>
-              <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen name="auth" options={{ headerShown: false }} />
-              <Stack.Screen name="(app)" options={{ headerShown: false }} />
-            </Stack>
-          </AuthProvider>
+          <AppQueryProvider>
+            <AuthProvider>
+              <SessionStateReset />
+              <Stack>
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+                <Stack.Screen name="auth" options={{ headerShown: false }} />
+                <Stack.Screen name="(app)" options={{ headerShown: false }} />
+              </Stack>
+            </AuthProvider>
+          </AppQueryProvider>
         </AppRepositoriesProvider>
         <StatusBar style="auto" />
         <PortalHost />

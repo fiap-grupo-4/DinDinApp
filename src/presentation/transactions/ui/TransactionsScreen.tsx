@@ -12,22 +12,22 @@ import { IconInput } from "@/src/shared/ui/icon-input";
 import { ScreenHeader } from "@/src/shared/ui/screen-header";
 import { Text } from "@/src/shared/ui/text";
 import { Transaction } from "@domain/transactions/entities/Transaction";
-import {
-  EMPTY_TRANSACTION_FILTERS,
-  TransactionFiltersValue,
-} from "@domain/transactions/entities/TransactionFilters";
-import { countActiveFilters } from "@domain/transactions/services/transaction-filters";
 import { useAuthState } from "@presentation/auth/providers/AuthProvider";
 import { useCategories } from "@presentation/categories/hooks/useCategories";
 import { useTransactionCategories } from "@presentation/transactions/hooks/useTransactionCategories";
 import { useTransactions } from "@presentation/transactions/hooks/useTransactions";
+import {
+  selectActiveFilterCount,
+  selectSearch,
+  useTransactionFiltersStore,
+} from "@presentation/transactions/stores/transactionFiltersStore";
 import type { TransactionSubmitData } from "@presentation/transactions/ui/transaction-form-drawer";
 import {
   TransactionListItem,
   TransactionWithCategory,
 } from "@presentation/transactions/ui/transaction-list-item";
 import { ListFilter, Plus, Search } from "lucide-react-native";
-import React, { Suspense, useCallback, useMemo, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -63,9 +63,10 @@ export const TransactionsScreen: React.FC = () => {
     error: categoriesError,
   } = useCategories(user?.uid ?? "");
 
-  const [filters, setFilters] = useState<TransactionFiltersValue>(
-    EMPTY_TRANSACTION_FILTERS,
-  );
+  const search = useTransactionFiltersStore(selectSearch);
+  const activeFilterCount = useTransactionFiltersStore(selectActiveFilterCount);
+  const setSearch = useTransactionFiltersStore((state) => state.setSearch);
+
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] =
@@ -78,6 +79,7 @@ export const TransactionsScreen: React.FC = () => {
   const {
     transactions,
     isLoading,
+    isRefreshing,
     isLoadingMore,
     hasMore,
     error,
@@ -86,38 +88,34 @@ export const TransactionsScreen: React.FC = () => {
     removeTransaction,
     refresh,
     loadMore,
-  } = useTransactions(filters);
+  } = useTransactions();
 
   const transactionsWithCategory = useTransactionCategories(
     transactions,
     categories,
   );
 
-  const [searchText, setSearchText] = useState(filters.search);
-  const emitSearch = useDebouncedText((search) =>
-    setFilters((current) =>
-      current.search === search ? current : { ...current, search },
-    ),
+  const [searchText, setSearchText] = useState(search);
+  const emitSearch = useDebouncedText((value) => setSearch(value));
+
+  useEffect(() => {
+    setSearchText(search);
+  }, [search]);
+
+  const handleSearchChange = useCallback(
+    (text: string) => {
+      setSearchText(text);
+      emitSearch(text);
+    },
+    [emitSearch],
   );
 
-  function handleSearchChange(text: string) {
-    setSearchText(text);
-    emitSearch(text);
-  }
+  const hasSearch = search.length > 0;
 
-  const handleApplyFilters = useCallback(
-    (value: TransactionFiltersValue) =>
-      setFilters((current) => ({ ...value, search: current.search })),
-    [],
-  );
-
-  const hasSearch = filters.search.length > 0;
-  const activeFilterCount = countActiveFilters({ ...filters, search: "" });
-
-  function handleAdd() {
+  const handleAdd = useCallback(() => {
     setEditingTransaction(null);
     setIsFormOpen(true);
-  }
+  }, []);
 
   const handleEdit = useCallback((transaction: TransactionWithCategory) => {
     setEditingTransaction(transaction);
@@ -170,7 +168,9 @@ export const TransactionsScreen: React.FC = () => {
     }
   }
 
-  const handleRefresh = useCallback(() => refresh(), [refresh]);
+  const handleRefresh = useCallback(() => {
+    void refresh();
+  }, [refresh]);
 
   const handleEndReached = useCallback(() => {
     if (!isLoading && !hasSearch) loadMore();
@@ -218,7 +218,7 @@ export const TransactionsScreen: React.FC = () => {
         </View>
       </View>
     ),
-    [activeFilterCount, searchText],
+    [activeFilterCount, handleAdd, handleSearchChange, searchText],
   );
 
   return (
@@ -235,7 +235,7 @@ export const TransactionsScreen: React.FC = () => {
         removeClippedSubviews={Platform.OS === "android"}
         contentContainerClassName="flex-grow px-6 py-8"
         showsVerticalScrollIndicator={false}
-        refreshing={isLoading && transactionsWithCategory.length > 0}
+        refreshing={isRefreshing}
         onRefresh={handleRefresh}
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.4}
@@ -286,8 +286,6 @@ export const TransactionsScreen: React.FC = () => {
             open={isFiltersOpen}
             onOpenChange={setIsFiltersOpen}
             categories={categories}
-            value={filters}
-            onApply={handleApplyFilters}
           />
         </Suspense>
       ) : null}

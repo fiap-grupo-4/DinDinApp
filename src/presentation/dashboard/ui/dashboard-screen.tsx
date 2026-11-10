@@ -8,14 +8,18 @@ import { ScreenHeader } from "@/src/shared/ui/screen-header";
 import { Skeleton } from "@/src/shared/ui/skeleton";
 import { Text } from "@/src/shared/ui/text";
 import { SavingsGoal } from "@domain/savings/entities/SavingsGoal";
+import { getSafeErrorMessage } from "@lib/error-messages";
 import { useAuthState } from "@presentation/auth/providers/AuthProvider";
 import { useCategories } from "@presentation/categories/hooks/useCategories";
 import { useDashboardMetrics } from "@presentation/dashboard/hooks/useDashboardMetrics";
 import type { RecentTransaction } from "@presentation/dashboard/models/dashboard-metrics";
+import {
+  selectToggleValuesVisible,
+  selectValuesVisible,
+  usePreferencesStore,
+} from "@presentation/preferences/stores/preferencesStore";
 import { useSavingsGoals } from "@presentation/savings/hooks/useSavingsGoals";
-import { useTransactions } from "@presentation/transactions/hooks/useTransactions";
-import { getSafeErrorMessage } from "@lib/error-messages";
-import { EMPTY_TRANSACTION_FILTERS } from "@domain/transactions/entities/TransactionFilters";
+import { useTransactionHistory } from "@presentation/transactions/hooks/useTransactionHistory";
 import { useRouter } from "expo-router";
 import { Suspense, useCallback, useState } from "react";
 import { ScrollView } from "react-native";
@@ -47,19 +51,20 @@ function ChartCardSkeleton() {
 }
 
 function showDeleteError(err: unknown, fallback: string) {
-  toast.error(err instanceof Error ? err.message : fallback);
+  toast.error(getSafeErrorMessage(err, fallback));
 }
 
 export function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuthState();
-  const [valuesVisible, setValuesVisible] = useState(false);
+  const valuesVisible = usePreferencesStore(selectValuesVisible);
+  const handleToggleVisible = usePreferencesStore(selectToggleValuesVisible);
   const {
     transactions,
     isLoading: isLoadingTransactions,
     error: transactionsError,
     removeTransaction,
-  } = useTransactions(EMPTY_TRANSACTION_FILTERS, { limit: null });
+  } = useTransactionHistory();
   const {
     categories,
     loading: isLoadingCategories,
@@ -92,11 +97,6 @@ export function DashboardScreen() {
 
   usePreloadWhenIdle(IDLE_PRELOADS);
 
-  const handleToggleVisible = useCallback(
-    () => setValuesVisible((visible) => !visible),
-    [],
-  );
-
   const handleOpenTransactions = useCallback(
     () => router.push("/transactions"),
     [router],
@@ -109,10 +109,6 @@ export function DashboardScreen() {
       ),
     [removeTransaction],
   );
-  
-  function showDeleteError(err: unknown, fallback: string) {
-    toast.error(getSafeErrorMessage(err, fallback));
-  }
 
   const handleAddGoal = useCallback(() => {
     setEditingGoal(null);
