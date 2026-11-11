@@ -9,8 +9,8 @@ import {
   persistQueryClientSave,
 } from "@tanstack/react-query-persist-client";
 import type { Transaction } from "@domain/transactions/entities/Transaction";
-import { InMemoryCategoryRepository } from "@/src/test/fakes/InMemoryCategoryRepository";
-import { InMemoryTransactionRepository } from "@/src/test/fakes/InMemoryTransactionRepository";
+import { InMemoryCategoryRepository } from "@/tests/fakes/InMemoryCategoryRepository";
+import { InMemoryTransactionRepository } from "@/tests/fakes/InMemoryTransactionRepository";
 import { containsOptimisticItem } from "@presentation/query/listCache";
 import {
   createQueryClient,

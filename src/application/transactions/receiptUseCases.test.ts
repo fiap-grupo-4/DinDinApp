@@ -1,5 +1,5 @@
 import { ValidationError } from "@domain/shared/errors";
-import { InMemoryReceiptStorage } from "@/src/test/fakes/InMemoryReceiptStorage";
+import { InMemoryReceiptStorage } from "@/tests/fakes/InMemoryReceiptStorage";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { saveWithReceipt } from "./receiptUseCases";
 
