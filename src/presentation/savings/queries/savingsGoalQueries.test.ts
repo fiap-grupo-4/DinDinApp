@@ -1,7 +1,7 @@
 import { MutationObserver, QueryClient } from "@tanstack/react-query";
 import type { SavingsGoal } from "@domain/savings/entities/SavingsGoal";
 import { InMemorySavingsGoalRepository } from "@/tests/fakes/InMemorySavingsGoalRepository";
-import { createQueryClient } from "@presentation/query/queryClient";
+import { createQueryClient } from "@/src/infrastructure/tanstack/queryClient";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   createSavingsGoalMutationOptions,

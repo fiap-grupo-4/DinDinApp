@@ -11,12 +11,12 @@ import {
   PersistQueryClientProvider,
   type PersistQueryClientOptions,
 } from "@tanstack/react-query-persist-client";
-import { containsOptimisticItem } from "@presentation/query/listCache";
+import { containsOptimisticItem } from "@/src/infrastructure/tanstack/listCache";
 import {
   createQueryClient,
   PERSISTED_CACHE_MAX_AGE,
   QUERY_CACHE_BUSTER,
-} from "@presentation/query/queryClient";
+} from "@/src/infrastructure/tanstack/queryClient";
 
 export const QUERY_CACHE_STORAGE_KEY = "dindin.query-cache";
 

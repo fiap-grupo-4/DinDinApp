@@ -15,8 +15,8 @@ import {
   prepareOptimisticUpdate,
   restoreSnapshot,
   type QuerySnapshot,
-} from "@presentation/query/listCache";
-import { queryKeys } from "@presentation/query/queryKeys";
+} from "@/src/infrastructure/tanstack/listCache";
+import { queryKeys } from "@/src/infrastructure/tanstack/queryKeys";
 import { applyTransactionChangeToCache } from "./transactionCache";
 
 export type NewTransaction = Omit<CreateTransactionDTO, "userId">;

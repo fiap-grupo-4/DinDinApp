@@ -24,8 +24,8 @@ import {
   replaceItem,
   restoreSnapshot,
   type QuerySnapshot,
-} from "@presentation/query/listCache";
-import { queryKeys } from "@presentation/query/queryKeys";
+} from "@/src/infrastructure/tanstack/listCache";
+import { queryKeys } from "@/src/infrastructure/tanstack/queryKeys";
 
 export type NewSavingsGoal = Omit<CreateSavingsGoalDTO, "userId">;
 

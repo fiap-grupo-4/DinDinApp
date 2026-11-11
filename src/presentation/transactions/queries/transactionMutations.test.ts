@@ -11,13 +11,13 @@ import {
 import type { Transaction } from "@domain/transactions/entities/Transaction";
 import { InMemoryCategoryRepository } from "@/tests/fakes/InMemoryCategoryRepository";
 import { InMemoryTransactionRepository } from "@/tests/fakes/InMemoryTransactionRepository";
-import { containsOptimisticItem } from "@presentation/query/listCache";
+import { containsOptimisticItem } from "@/src/infrastructure/tanstack/listCache";
 import {
   createQueryClient,
   PERSISTED_CACHE_MAX_AGE,
   QUERY_CACHE_BUSTER,
-} from "@presentation/query/queryClient";
-import { queryKeys } from "@presentation/query/queryKeys";
+} from "@/src/infrastructure/tanstack/queryClient";
+import { queryKeys } from "@/src/infrastructure/tanstack/queryKeys";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   flattenTransactionPages,

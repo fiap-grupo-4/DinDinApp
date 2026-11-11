@@ -17,7 +17,7 @@ import {
   selectToggleValuesVisible,
   selectValuesVisible,
   usePreferencesStore,
-} from "@presentation/preferences/stores/preferencesStore";
+} from "@/src/presentation/dashboard/stores/preferencesStore";
 import { useSavingsGoals } from "@presentation/savings/hooks/useSavingsGoals";
 import { useTransactionHistory } from "@presentation/transactions/hooks/useTransactionHistory";
 import { useRouter } from "expo-router";
