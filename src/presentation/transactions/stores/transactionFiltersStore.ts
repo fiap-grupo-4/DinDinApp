@@ -7,7 +7,7 @@ import { countActiveFilters } from "@domain/transactions/services/transaction-fi
 import {
   toTransactionServerFilters,
   type TransactionServerFilters,
-} from "@/src/infrastructure/tanstack/queryKeys";
+} from "@lib/queryCache/queryKeys";
 
 // Filtros editados no drawer (tudo menos a busca, que tem campo próprio).
 export type TransactionFiltersDraft = TransactionServerFilters;

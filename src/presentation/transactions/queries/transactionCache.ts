@@ -8,7 +8,7 @@ import type {
   PaginatedResult,
   TransactionCursor,
 } from "@domain/transactions/repositories/ITransactionRepository";
-import { queryKeys } from "@/src/infrastructure/tanstack/queryKeys";
+import { queryKeys } from "@lib/queryCache/queryKeys";
 
 export type TransactionPage = PaginatedResult<Transaction>;
 export type TransactionPageParam = TransactionCursor | null;

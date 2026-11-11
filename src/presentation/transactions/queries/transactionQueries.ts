@@ -8,7 +8,7 @@ import {
 import {
   queryKeys,
   type TransactionServerFilters,
-} from "@/src/infrastructure/tanstack/queryKeys";
+} from "@lib/queryCache/queryKeys";
 import type {
   TransactionPage,
   TransactionPageParam,

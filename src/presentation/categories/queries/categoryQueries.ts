@@ -19,9 +19,9 @@ import {
   replaceItem,
   restoreSnapshot,
   type QuerySnapshot,
-} from "@/src/infrastructure/tanstack/listCache";
-import { CATEGORIES_STALE_TIME } from "@/src/infrastructure/tanstack/queryClient";
-import { queryKeys } from "@/src/infrastructure/tanstack/queryKeys";
+} from "@lib/queryCache/listCache";
+import { CATEGORIES_STALE_TIME } from "@lib/queryCache/queryClient";
+import { queryKeys } from "@lib/queryCache/queryKeys";
 
 type OptimisticContext = {
   snapshot: QuerySnapshot;

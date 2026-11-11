@@ -1,7 +1,7 @@
 import { MutationObserver, QueryClient } from "@tanstack/react-query";
 import type { Category } from "@domain/categories/entities/Category";
 import { InMemoryCategoryRepository } from "@/tests/fakes/InMemoryCategoryRepository";
-import { createQueryClient } from "@/src/infrastructure/tanstack/queryClient";
+import { createQueryClient } from "@lib/queryCache/queryClient";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   categoriesQueryOptions,

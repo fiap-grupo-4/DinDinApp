@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthState } from "@presentation/auth/providers/AuthProvider";
-import { clearUserData, shouldClearUserData } from "@/src/infrastructure/tanstack/session";
+import { clearUserData, shouldClearUserData } from "@lib/queryCache/session";
 import { useTransactionFiltersStore } from "@presentation/transactions/stores/transactionFiltersStore";
 
 // Ao sair da conta (ou trocar de usuário), limpa o cache de dados do servidor e
