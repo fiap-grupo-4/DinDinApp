@@ -1,6 +1,6 @@
 import { CreateUserRequest } from "@domain/auth/entities/User";
 import { ValidationError } from "@domain/shared/errors";
-import { FakeAuthRepository } from "@/src/test/fakes/FakeAuthRepository";
+import { FakeAuthRepository } from "@/tests/fakes/FakeAuthRepository";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   disableTotp,

@@ -1,5 +1,5 @@
 import { NotFoundError, ValidationError } from "@domain/shared/errors";
-import { InMemoryCategoryRepository } from "@/src/test/fakes/InMemoryCategoryRepository";
+import { InMemoryCategoryRepository } from "@/tests/fakes/InMemoryCategoryRepository";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   createCategory,

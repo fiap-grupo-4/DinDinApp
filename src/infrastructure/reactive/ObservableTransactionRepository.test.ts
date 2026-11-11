@@ -1,5 +1,5 @@
 import { TransactionChange } from "@domain/transactions/events/TransactionChange";
-import { InMemoryTransactionRepository } from "@/src/test/fakes/InMemoryTransactionRepository";
+import { InMemoryTransactionRepository } from "@/tests/fakes/InMemoryTransactionRepository";
 import { ObservableTransactionRepository } from "./ObservableTransactionRepository";
 import { describe, expect, it } from "vitest";
 

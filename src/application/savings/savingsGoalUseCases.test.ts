@@ -1,6 +1,6 @@
 import { SavingsGoal } from "@domain/savings/entities/SavingsGoal";
 import { NotFoundError, ValidationError } from "@domain/shared/errors";
-import { InMemorySavingsGoalRepository } from "@/src/test/fakes/InMemorySavingsGoalRepository";
+import { InMemorySavingsGoalRepository } from "@/tests/fakes/InMemorySavingsGoalRepository";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   createSavingsGoal,

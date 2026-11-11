@@ -71,9 +71,45 @@ export class InMemoryTransactionRepository implements ITransactionRepository {
     filters?: TransactionFilters,
   ): Promise<PaginatedResult<Transaction>> {
     this.calls.listForUser.push({ userId, filters });
-    const data = [...this.items.values()].filter(
+    let items = [...this.items.values()].filter(
       (item) => item.userId === userId,
     );
-    return { data, nextCursor: null };
+
+    if (filters?.transactionType) {
+      items = items.filter(
+        (item) => item.transactionType === filters.transactionType,
+      );
+    }
+    if (filters?.categoryId) {
+      items = items.filter((item) => item.categoryId === filters.categoryId);
+    }
+    if (filters?.fromDate) {
+      const fromDate = filters.fromDate;
+      items = items.filter((item) => item.createdAt >= fromDate);
+    }
+    if (filters?.toDate) {
+      const toDate = filters.toDate;
+      items = items.filter((item) => item.createdAt < toDate);
+    }
+
+    if (filters?.startAfter) {
+      const cursorIndex = items.findIndex(
+        (item) => item.uid === filters.startAfter?.id,
+      );
+      if (cursorIndex >= 0) {
+        items = items.slice(cursorIndex + 1);
+      }
+    }
+
+    if (filters?.limit !== undefined && items.length > filters.limit) {
+      const page = items.slice(0, filters.limit);
+      const last = page[page.length - 1];
+      return {
+        data: page,
+        nextCursor: { createdAt: last.createdAt, id: last.uid },
+      };
+    }
+
+    return { data: items, nextCursor: null };
   }
 }
