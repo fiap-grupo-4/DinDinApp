@@ -47,7 +47,7 @@
     "nativewind": "^4.2.6",
     "react": "^19.3.0",
     "react-dom": "^19.3.1",
-    "react-hook-form": "^7.84.0",
+    "react-hook-form": "^7.92.0",
     "react-native": "^0.88.1",
     "react-native-gesture-handler": "~3.3.0",
     "react-native-gifted-charts": "^1.4.78",
